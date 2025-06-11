@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypeGuard, cast
 
 from scenex.adaptors._base import CanvasAdaptor
+from scenex.events._auto import install_event_filter
 
 from ._adaptor_registry import adaptors
 
@@ -30,14 +31,28 @@ class Canvas(CanvasAdaptor):
     def __init__(self, canvas: model.Canvas, **backend_kwargs: Any) -> None:
         from rendercanvas.auto import RenderCanvas
 
-        self._wgpu_canvas = RenderCanvas()
-        # Qt RenderCanvas calls show() in its __init__ method, so we need to hide it
-        if supports_hide_show(self._wgpu_canvas):
-            self._wgpu_canvas.hide()
+        canvas_cls = RenderCanvas
+        # HACK: Qt
+        if canvas_cls.__module__.startswith("rendercanvas.qt"):
+            from qtpy.QtCore import QSize
+            from rendercanvas.auto import loop
+            from rendercanvas.qt import QRenderWidget
+
+            class _QRenderWidget(QRenderWidget):
+                def sizeHint(self) -> QSize:
+                    return QSize(self.width(), self.height())
+
+            loop._rc_init()
+            canvas_cls = _QRenderWidget
+        self._wgpu_canvas = canvas_cls()
 
         self._wgpu_canvas.set_logical_size(canvas.width, canvas.height)
         self._wgpu_canvas.set_title(canvas.title)
         self._views = canvas.views
+        self._filter = install_event_filter(self._wgpu_canvas, self._handle_event)
+
+    def _handle_event(self, event: Any) -> bool:
+        return False
 
     def _snx_get_native(self) -> BaseRenderCanvas:
         return self._wgpu_canvas

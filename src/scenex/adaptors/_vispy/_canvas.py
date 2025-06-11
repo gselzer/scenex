@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, TypeGuard, cast
 import numpy as np
 
 from scenex.adaptors._base import CanvasAdaptor
+from scenex.events import MouseEvent
+from scenex.events._auto import install_event_filter
 
 from ._adaptor_registry import get_adaptor
 
@@ -39,6 +41,21 @@ class Canvas(CanvasAdaptor):
         for view in canvas.views:
             self._snx_add_view(view)
         self._views = canvas.views
+        self._filter = install_event_filter(self._canvas.native, self._handle_event)
+
+    def _handle_event(self, event: Any) -> bool:
+        # Pass the event to the view
+        if isinstance(event, MouseEvent):
+            # Find the correct viewbox
+            visual = self._canvas.visuals_at(event.pos)[0]
+            # FIXME: This sux
+            for view in self._views:
+                for child in view.scene.children:
+                    if get_adaptor(child)._snx_get_native() == visual:
+                        if child.filter:
+                            return child.filter(event)
+
+        return False
 
     def _snx_get_native(self) -> Any:
         return self._canvas.native

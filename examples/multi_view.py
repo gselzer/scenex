@@ -2,6 +2,7 @@ import cmap
 import numpy as np
 
 import scenex as snx
+from scenex.events.events import Event, MouseEvent
 
 try:
     from scenex.imgui import add_imgui_controls
@@ -17,7 +18,7 @@ img = snx.Image(
     opacity=0.7,
 )
 
-view = snx.View(
+view1 = snx.View(
     blending="default",
     scene=snx.Scene(
         children=[
@@ -32,26 +33,41 @@ view = snx.View(
         ]
     ),
 )
+view2 = snx.View(
+    blending="default",
+    scene=snx.Scene(
+        children=[
+            snx.Points(
+                coords=np.random.randint(0, 200, (100, 2)).astype(np.uint8),
+                size=5,
+                face_color=cmap.Color("coral"),
+                edge_color=cmap.Color("purple"),
+                transform=snx.Transform().translated((0, -50)),
+            ),
+        ]
+    ),
+)
+canvas = snx.Canvas()
+canvas.views.extend([view1, view2])
 
-# example of adding an object to a scene
-X, Y = np.meshgrid(np.linspace(-10, 10, 100), np.linspace(-10, 10, 100))
-sine_img = (np.sin(X) * np.cos(Y)).astype(np.float32)
-image = snx.Image(name="sine image", data=sine_img, clims=(-1, 1))
-view.scene.add_child(image)
 
-
-def _canvas_filter(event: snx.Event) -> bool:
-    print(event)
+def img_filter(event: Event) -> bool:
+    """Example filter function for the image."""
+    if isinstance(event, MouseEvent) and event.type == "move":
+        print(f"Mouse moved over image at {event.pos}")
+        return True
     return False
 
 
-view.scene.filter = _canvas_filter
+img.filter = img_filter
+
+# example of adding an object to a scene
 
 # both are optional, just for example
 # snx.use("pygfx")
 snx.use("vispy")
 
-snx.show(view)
+snx.show(canvas)
 # if add_imgui_controls is not None:
 #  add_imgui_controls(view)
 snx.run()

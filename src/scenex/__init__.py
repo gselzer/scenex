@@ -10,6 +10,7 @@ except PackageNotFoundError:
     __version__ = "uninstalled"
 
 from .adaptors import run, use
+from .events import Event
 from .model._canvas import Canvas
 from .model._nodes.camera import Camera
 from .model._nodes.image import Image
@@ -24,6 +25,7 @@ from .util import show
 __all__ = [
     "Camera",
     "Canvas",
+    "Event",
     "Image",
     "Node",
     "Points",

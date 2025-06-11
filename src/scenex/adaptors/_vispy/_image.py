@@ -25,6 +25,7 @@ class Image(Node):
         )
         self._snx_set_data(image.data)
         self._vispy_node.visible = True
+        self._vispy_node.interactive = True
 
     def _snx_set_cmap(self, arg: Colormap) -> None:
         self._vispy_node.cmap = arg.to_vispy()

@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Union, cast
 
 from psygnal import Signal
@@ -15,6 +15,7 @@ from pydantic import (
     model_validator,
 )
 
+from scenex.events import Event
 from scenex.model._base import EventedBase
 from scenex.model._transform import Transform
 
@@ -78,6 +79,8 @@ class Node(EventedBase):
         description="Transform that maps the local coordinate frame to the coordinate "
         "frame of the parent.",
     )
+
+    filter: Callable[[Event], bool] | None = Field(default=None, repr=False)
 
     model_config = ConfigDict(extra="forbid")
 
