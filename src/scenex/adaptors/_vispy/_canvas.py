@@ -53,7 +53,7 @@ class Canvas(CanvasAdaptor):
                 for child in view.scene.children:
                     if get_adaptor(child)._snx_get_native() == visual:
                         if child.filter:
-                            return child.filter(event)
+                            return child.filter(event, child)
 
         return False
 

@@ -15,13 +15,14 @@ from pydantic import (
     model_validator,
 )
 
-from scenex.events import Event
 from scenex.model._base import EventedBase
 from scenex.model._transform import Transform
 
 if TYPE_CHECKING:
     import numpy.typing as npt
     from typing_extensions import Self, TypedDict, Unpack
+
+    from scenex.events import Event
 
     from .camera import Camera
     from .image import Image
@@ -80,7 +81,7 @@ class Node(EventedBase):
         "frame of the parent.",
     )
 
-    filter: Callable[[Event], bool] | None = Field(default=None, repr=False)
+    filter: "Callable[[Event, Node], bool] | None" = Field(default=None, repr=False)
 
     model_config = ConfigDict(extra="forbid")
 

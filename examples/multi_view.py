@@ -3,6 +3,7 @@ import numpy as np
 
 import scenex as snx
 from scenex.events.events import Event, MouseEvent
+from scenex.model import Node
 
 try:
     from scenex.imgui import add_imgui_controls
@@ -51,11 +52,11 @@ canvas = snx.Canvas()
 canvas.views.extend([view1, view2])
 
 
-def img_filter(event: Event) -> bool:
+def img_filter(event: Event, n: Node) -> bool:
     """Example filter function for the image."""
     if isinstance(event, MouseEvent) and event.type == "move":
-        print(f"Mouse moved over image at {event.pos}")
-        return True
+        print(f"Mouse moved over {n} at {event.pos}")
+        return False
     return False
 
 
