@@ -29,7 +29,7 @@ class Canvas(CanvasAdaptor):
     """Canvas interface for vispy Backend."""
 
     def __init__(self, canvas: model.Canvas, **backend_kwargs: Any) -> None:
-        from vispy.scene import Grid, SceneCanvas
+        from vispy.scene import Grid, SceneCanvas, VisualNode
 
         self._canvas = SceneCanvas(
             title=canvas.title, size=(canvas.width, canvas.height)
@@ -43,17 +43,34 @@ class Canvas(CanvasAdaptor):
         self._views = canvas.views
         self._filter = install_event_filter(self._canvas.native, self._handle_event)
 
+        self._visual_to_node: dict[VisualNode, model.Node | None] = {}
+
+    def _filter_through(self, event: Any, node: model.Node, target: model.Node) -> bool:
+        """Filter the event through the scene graph to the target node."""
+        filtered = False
+        # Recursively filter event through parent(s) first.
+        if parent := node.parent:
+            filtered |= self._filter_through(event, parent, target)
+        # If parent(s) didn't filter it out, pass to node's filter.
+        if not filtered and (f := node.filter):
+            filtered |= f(event, target)
+        return filtered
+
     def _handle_event(self, event: Any) -> bool:
         # Pass the event to the view
         if isinstance(event, MouseEvent):
-            # Find the correct viewbox
+            # Find the visual under the mouse
             visual = self._canvas.visuals_at(event.pos)[0]
-            # FIXME: This sux
-            for view in self._views:
-                for child in view.scene.children:
-                    if get_adaptor(child)._snx_get_native() == visual:
-                        if child.filter:
-                            return child.filter(event, child)
+            # Find the scenex node associated with the visual
+            if visual not in self._visual_to_node:
+                for view in self._views:
+                    for child in view.scene.children:
+                        if get_adaptor(child)._snx_get_native() == visual:
+                            self._visual_to_node[visual] = child
+                self._visual_to_node.setdefault(visual, None)
+            if node := self._visual_to_node.get(visual, None):
+                # Filter through parent scenes to child
+                self._filter_through(event, node, node)
 
         return False
 

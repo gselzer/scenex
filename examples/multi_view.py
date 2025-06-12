@@ -1,3 +1,6 @@
+import random
+from typing import cast
+
 import cmap
 import numpy as np
 
@@ -5,13 +8,8 @@ import scenex as snx
 from scenex.events.events import Event, MouseEvent
 from scenex.model import Node
 
-try:
-    from scenex.imgui import add_imgui_controls
-except ImportError:
-    print("imgui not available, skipping imgui controls")
-    add_imgui_controls = None  # type: ignore[assignment]
-
 img = snx.Image(
+    name="image",
     data=np.random.randint(0, 255, (200, 200)).astype(np.uint8),
     cmap=cmap.Colormap("viridis"),
     transform=snx.Transform().scaled((1.3, 0.5)).translated((-40, 20)),
@@ -25,6 +23,7 @@ view1 = snx.View(
         children=[
             img,
             snx.Points(
+                name="points1",
                 coords=np.random.randint(0, 200, (100, 2)).astype(np.uint8),
                 size=5,
                 face_color=cmap.Color("coral"),
@@ -39,10 +38,11 @@ view2 = snx.View(
     scene=snx.Scene(
         children=[
             snx.Points(
+                name="points2",
                 coords=np.random.randint(0, 200, (100, 2)).astype(np.uint8),
                 size=5,
-                face_color=cmap.Color("coral"),
-                edge_color=cmap.Color("purple"),
+                face_color=cmap.Color("red"),
+                edge_color=cmap.Color("blue"),
                 transform=snx.Transform().translated((0, -50)),
             ),
         ]
@@ -52,15 +52,41 @@ canvas = snx.Canvas()
 canvas.views.extend([view1, view2])
 
 
+def scene_filter(event: Event, n: Node) -> bool:
+    """Example filter function for the image."""
+    if isinstance(event, MouseEvent) and event.type == "move":
+        # print(f"Scene saw Mouse moved over {n.name} at {event.pos}")
+        return isinstance(n, snx.Image)
+    return False
+
+
+# FIXME: It'd be cool to know this was an image
 def img_filter(event: Event, n: Node) -> bool:
     """Example filter function for the image."""
     if isinstance(event, MouseEvent) and event.type == "move":
-        print(f"Mouse moved over {n} at {event.pos}")
+        # print(f"Image saw Mouse moved over {n.name} at {event.pos}")
         return False
+    elif isinstance(event, MouseEvent) and event.type == "press":
+        img = cast("snx.Image", n)
+        img.cmap = cmap.Colormap(
+            random.choice(
+                [
+                    "viridis",
+                    "plasma",
+                    "inferno",
+                    "magma",
+                    "cividis",
+                    "turbo",
+                    "coolwarm",
+                ]
+            )
+        )
+
     return False
 
 
 img.filter = img_filter
+view1.scene.filter = scene_filter
 
 # example of adding an object to a scene
 
@@ -69,6 +95,4 @@ img.filter = img_filter
 snx.use("vispy")
 
 snx.show(canvas)
-# if add_imgui_controls is not None:
-#  add_imgui_controls(view)
 snx.run()

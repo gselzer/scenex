@@ -60,8 +60,11 @@ class QtEventFilter(QObject, EventFilter):
                     type="move", pos=(pos.x(), pos.y()), buttons=self._active_buttons
                 )
             elif etype == QEvent.Type.MouseButtonDblClick:
+                self._active_buttons.add(btn)
                 return MouseEvent(
-                    type="double_click", pos=(pos.x(), pos.y()), buttons={btn}
+                    type="double_click",
+                    pos=(pos.x(), pos.y()),
+                    buttons=self._active_buttons,
                 )
             elif etype == QEvent.Type.MouseButtonPress:
                 self._active_buttons.add(btn)
