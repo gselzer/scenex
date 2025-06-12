@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from qtpy.QtCore import QEvent, QObject, Qt
-from qtpy.QtGui import QMouseEvent
-from qtpy.QtWidgets import QWidget
-
-from scenex.events.events import MouseButton, MouseEvent
+import importlib
+import os
+import sys
+from enum import Enum
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from typing import Any
 
     from scenex.events import Event
@@ -23,68 +21,118 @@ class EventFilter:
     pass
 
 
-class QtEventFilter(QObject, EventFilter):
-    def __init__(self, canvas: QWidget, filter_func: Callable[[Event], bool]) -> None:
-        super(QObject, self).__init__()
-        self._canvas = canvas
-        self._filter_func = filter_func
-        self._active_buttons: set[MouseButton] = set()
-
-    def eventFilter(self, a0: QObject | None = None, a1: QEvent | None = None) -> bool:
-        if isinstance(a0, QWidget) and isinstance(a1, QEvent):
-            if evt := self._convert_event(a1):
-                return self._filter_func(evt)
-        return False
-
-    def uninstall(self) -> None:
-        self._canvas.removeEventFilter(self)
-
-    def mouse_btn(self, btn: Any) -> MouseButton:
-        if btn == Qt.MouseButton.LeftButton:
-            return MouseButton.LEFT
-        if btn == Qt.MouseButton.RightButton:
-            return MouseButton.RIGHT
-        if btn == Qt.MouseButton.NoButton:
-            return MouseButton.NONE
-
-        raise Exception(f"Qt mouse button {btn} is unknown")
-
-    def _convert_event(self, qevent: QEvent) -> Event | None:
-        """Convert a QEvent to a SceneX Event."""
-        if isinstance(qevent, QMouseEvent):
-            pos = qevent.pos()
-            etype = qevent.type()
-            btn = self.mouse_btn(qevent.button())
-            if etype == QEvent.Type.MouseMove:
-                return MouseEvent(
-                    type="move", pos=(pos.x(), pos.y()), buttons=self._active_buttons
-                )
-            elif etype == QEvent.Type.MouseButtonDblClick:
-                self._active_buttons.add(btn)
-                return MouseEvent(
-                    type="double_click",
-                    pos=(pos.x(), pos.y()),
-                    buttons=self._active_buttons,
-                )
-            elif etype == QEvent.Type.MouseButtonPress:
-                self._active_buttons.add(btn)
-                return MouseEvent(
-                    type="press", pos=(pos.x(), pos.y()), buttons=self._active_buttons
-                )
-            elif etype == QEvent.Type.MouseButtonRelease:
-                self._active_buttons.remove(btn)
-                return MouseEvent(
-                    type="release", pos=(pos.x(), pos.y()), buttons=self._active_buttons
-                )
-        return None
+GUI_ENV_VAR = "NDV_GUI_FRONTEND"
+"""Preferred GUI frontend. If not set, the first available GUI frontend is used."""
+_APP: App | None = None
+"""Singleton instance of the current (GUI) application. Once set it shouldn't change."""
 
 
-def install_event_filter(
-    canvas: Any, filter_func: Callable[[Event], bool]
-) -> EventFilter:
-    if isinstance(canvas, QWidget):
-        f = QtEventFilter(canvas, filter_func)
-        canvas.installEventFilter(f)
-        return f
+class GuiFrontend(str, Enum):
+    """Enum of available GUI frontends.
 
-    raise RuntimeError("Canvas is not a QWidget. Cannot install event filter.")
+    Attributes
+    ----------
+    GLFW : str
+        [GLFW](https://www.glfw.org/)
+    QT : str
+        [PyQt5/PySide2/PyQt6/PySide6](https://doc.qt.io)
+    """
+
+    GLFW = "glfw"
+    QT = "qt"
+
+
+GUI_PROVIDERS: dict[GuiFrontend, tuple[str, str]] = {
+    GuiFrontend.GLFW: ("scenex.events._glfw", "GlfwAppWrap"),
+    GuiFrontend.QT: ("scenex.events._qt", "QtAppWrap"),
+}
+
+
+class App:
+    """
+    Base class for application wrappers.
+
+    TODO: Where should this live? Probably doesn't belong in this repo...
+    """
+
+    def create_app(self) -> Any:
+        """Create the application instance, if not already created."""
+        raise NotImplementedError("Must be implemented by subclasses.")
+
+    def show(self, canvas: Any, visible: bool) -> None:
+        """Show or hide the canvas."""
+        raise NotImplementedError("Must be implemented by subclasses.")
+
+    def install_event_filter(
+        self, canvas: Any, filter_func: Callable[[Event], bool]
+    ) -> EventFilter:
+        raise NotImplementedError("Must be implemented by subclasses.")
+
+
+def _running_apps() -> Iterator[GuiFrontend]:
+    """Return an iterator of running GUI applications."""
+    for mod_name in ("PyQt5", "PySide2", "PySide6", "PyQt6"):
+        if mod := sys.modules.get(f"{mod_name}.QtWidgets"):
+            if (
+                qapp := getattr(mod, "QApplication", None)
+            ) and qapp.instance() is not None:
+                yield GuiFrontend.QT
+
+    # Note glfw.init() immediately returns True if already initialized
+    # if (glfw := sys.modules.get("glfw")) and glfw.init():
+    #     yield GuiFrontend.GLFW
+
+
+def _load_app(module: str, cls_name: str) -> App:
+    mod = importlib.import_module(module)
+    cls = getattr(mod, cls_name)
+    return cast("App", cls())
+
+
+def app() -> App:
+    """Return the active [`GuiFrontend`][ndv.views.GuiFrontend].
+
+    This is determined first by the `NDV_GUI_FRONTEND` environment variable, after which
+    known GUI providers are tried in order until one is found that is either already
+    running, or available.
+    """
+    global _APP
+    if _APP is not None:
+        return _APP
+
+    running = list(_running_apps())
+
+    # Try 1: Load a frontend explicitly requested by the user
+    requested = os.getenv(GUI_ENV_VAR, "").lower()
+    valid = {x.value for x in GuiFrontend}
+    if requested:
+        if requested not in valid:
+            raise ValueError(
+                f"Invalid GUI frontend: {requested!r}. Valid options: {valid}"
+            )
+        # ensure the app is created for explicitly requested frontends
+        _APP = _load_app(*GUI_PROVIDERS[GuiFrontend(requested)])
+        _APP.create_app()
+        return _APP
+
+    # Try 2: Utilize an existing, running app
+    for key, provider in GUI_PROVIDERS.items():
+        if key in running:
+            _APP = _load_app(*provider)
+            _APP.create_app()
+            return _APP
+
+    # Try 3: Load an existing app
+    errors: list[tuple[str, BaseException]] = []
+    for key, provider in GUI_PROVIDERS.items():
+        try:
+            _APP = _load_app(*provider)
+            _APP.create_app()
+            return _APP
+        except Exception as e:
+            errors.append((key, e))
+
+    raise RuntimeError(  # pragma: no cover
+        f"Could not find an appropriate GUI frontend: {valid!r}. Tried:\n\n"
+        + "\n".join(f"- {key}: {err}" for key, err in errors)
+    )

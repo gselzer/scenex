@@ -6,7 +6,7 @@ import numpy as np
 
 from scenex.adaptors._base import CanvasAdaptor
 from scenex.events import MouseEvent
-from scenex.events._auto import install_event_filter
+from scenex.events._auto import app
 
 from ._adaptor_registry import get_adaptor
 
@@ -41,7 +41,9 @@ class Canvas(CanvasAdaptor):
         for view in canvas.views:
             self._snx_add_view(view)
         self._views = canvas.views
-        self._filter = install_event_filter(self._canvas.native, self._handle_event)
+        self._filter = app().install_event_filter(
+            self._canvas.native, self._handle_event
+        )
 
         self._visual_to_node: dict[VisualNode, model.Node | None] = {}
 
@@ -57,10 +59,15 @@ class Canvas(CanvasAdaptor):
         return filtered
 
     def _handle_event(self, event: Any) -> bool:
+        from vispy.scene import ViewBox
+
         # Pass the event to the view
         if isinstance(event, MouseEvent):
             # Find the visual under the mouse
-            visual = self._canvas.visuals_at(event.pos)[0]
+            visuals = self._canvas.visuals_at(event.pos)
+            visual = next(filter(lambda v: not isinstance(v, ViewBox), visuals), None)
+            if not visual:
+                return False
             # Find the scenex node associated with the visual
             if visual not in self._visual_to_node:
                 for view in self._views:
@@ -79,8 +86,7 @@ class Canvas(CanvasAdaptor):
 
     def _snx_set_visible(self, arg: bool) -> None:
         # show the qt canvas we patched earlier in __init__
-        if supports_hide_show(self._canvas.native):
-            self._canvas.show()
+        app().show(self._canvas.native, arg)
 
     def _draw(self) -> None:
         self._canvas.update()

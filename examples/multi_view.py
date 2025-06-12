@@ -55,8 +55,8 @@ canvas.views.extend([view1, view2])
 def scene_filter(event: Event, n: Node) -> bool:
     """Example filter function for the image."""
     if isinstance(event, MouseEvent) and event.type == "move":
-        # print(f"Scene saw Mouse moved over {n.name} at {event.pos}")
-        return isinstance(n, snx.Image)
+        print(f"Scene saw Mouse moved over {n.name} at {event.pos}")
+        # return isinstance(n, snx.Image)
     return False
 
 
@@ -64,7 +64,7 @@ def scene_filter(event: Event, n: Node) -> bool:
 def img_filter(event: Event, n: Node) -> bool:
     """Example filter function for the image."""
     if isinstance(event, MouseEvent) and event.type == "move":
-        # print(f"Image saw Mouse moved over {n.name} at {event.pos}")
+        print(f"Image saw Mouse moved over {n.name} at {event.pos}")
         return False
     elif isinstance(event, MouseEvent) and event.type == "press":
         img = cast("snx.Image", n)

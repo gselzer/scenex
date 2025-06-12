@@ -40,13 +40,6 @@ image = snx.Image(name="sine image", data=sine_img, clims=(-1, 1))
 view.scene.add_child(image)
 
 
-def _canvas_filter(event: snx.Event) -> bool:
-    print(event)
-    return False
-
-
-view.scene.filter = _canvas_filter
-
 # both are optional, just for example
 # snx.use("pygfx")
 snx.use("vispy")
