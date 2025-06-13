@@ -78,9 +78,20 @@ def _running_apps() -> Iterator[GuiFrontend]:
             ) and qapp.instance() is not None:
                 yield GuiFrontend.QT
 
-    # Note glfw.init() immediately returns True if already initialized
-    # if (glfw := sys.modules.get("glfw")) and glfw.init():
-    #     yield GuiFrontend.GLFW
+    # glfw provides no way to check if already running - this is a best guess.
+    if glfw := sys.modules.get("glfw"):
+        old, glfw.ERROR_REPORTING = glfw.ERROR_REPORTING, "exception"  # type: ignore[attr-defined]
+        glfw_initialized = False
+        try:
+            glfw.get_monitors()
+            glfw_initialized = True
+        except glfw.GLFWError:
+            pass
+
+        glfw.ERROR_REPORTING = old  # type: ignore[attr-defined]
+
+        if glfw_initialized:
+            yield GuiFrontend.GLFW
 
 
 def _load_app(module: str, cls_name: str) -> App:
