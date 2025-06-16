@@ -26,8 +26,11 @@ class MouseEvent(Event):
     """A general mouse interaction event."""
 
     type: str
+    # TODO: Maybe a 3D vector/ray?
+    # TODO: Named tuple? e.g. event.pos.x, event.pos.y, ...
     pos: tuple[float, float]
     # TODO: Enum?
+    # TODO: Just a MouseButton, you can AND the MouseButtons
     buttons: set[MouseButton]
 
     @property

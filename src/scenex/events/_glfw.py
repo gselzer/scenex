@@ -25,8 +25,23 @@ class GlfwEventFilter(EventFilter):
         self._canvas = canvas
         self._filter_func = filter_func
         self._active_buttons: set[MouseButton] = set()
-        glfw.set_cursor_pos_callback(self._canvas._id, self._cursor_pos_callback)
-        glfw.set_mouse_button_callback(self._canvas._id, self._mouse_button_callback)
+        self._window_id = self._guess_id(canvas)
+        # TODO: Maybe save the old callbacks?
+        glfw.set_cursor_pos_callback(self._window_id, self._cursor_pos_callback)
+        glfw.set_mouse_button_callback(self._window_id, self._mouse_button_callback)
+
+    def _guess_id(self, canvas: Any) -> Any:
+        # vispy
+        if window := getattr(canvas, "_id", None):
+            return window
+        # rendercanvas
+        if window := getattr(canvas, "_window", None):
+            return window
+
+    def uninstall(self) -> None:
+        raise NotImplementedError(
+            "Uninstalling GLFW event filters is not yet supported."
+        )
 
     def _cursor_pos_callback(self, window: Any, xpos: float, ypos: float) -> None:
         """Handle cursor position events."""
@@ -35,7 +50,7 @@ class GlfwEventFilter(EventFilter):
     def _mouse_button_callback(
         self, window: Any, button: int, action: int, mods: int
     ) -> None:
-        pos = glfw.get_cursor_pos(self._canvas._id)
+        pos = glfw.get_cursor_pos(window)
         # Mouse click event
         if button in BUTTONMAP:
             if action == glfw.PRESS:

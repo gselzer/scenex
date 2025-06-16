@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
 from .node import Node
+
+if TYPE_CHECKING:
+    import numpy as np
 
 CameraType = Literal["panzoom", "perspective"]
 Position2D = tuple[float, float]
@@ -31,3 +34,8 @@ class Camera(Node):
     center: Position = Field(
         default=(0, 0, 0), description="Center position of the view."
     )
+
+    def passes_through(
+        self, ray_origin: np.ndarray, ray_direction: np.ndarray
+    ) -> float | None:
+        return None

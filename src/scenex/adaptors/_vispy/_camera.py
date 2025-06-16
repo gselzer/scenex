@@ -42,9 +42,7 @@ class Camera(Node, CameraAdaptor):
 
     def _snx_set_transform(self, arg: Transform) -> None:
         if isinstance(self._vispy_node, vispy.scene.PanZoomCamera):
-            self._vispy_node.tf_mat = vispy.scene.transforms.MatrixTransform(
-                np.asarray(arg)
-            )
+            self._vispy_node.center = tuple(np.asarray(arg)[3, :3])
         else:
             super()._snx_set_transform(arg)
 

@@ -7,6 +7,7 @@ import numpy as np
 from scenex.adaptors._base import CanvasAdaptor
 from scenex.events import MouseEvent
 from scenex.events._auto import app
+from scenex.events.events import MouseButton
 
 from ._adaptor_registry import get_adaptor
 
@@ -46,40 +47,61 @@ class Canvas(CanvasAdaptor):
         )
 
         self._visual_to_node: dict[VisualNode, model.Node | None] = {}
+        self._last_canvas_pos: tuple[float, float] | None = None
 
     def _filter_through(self, event: Any, node: model.Node, target: model.Node) -> bool:
         """Filter the event through the scene graph to the target node."""
-        filtered = False
-        # Recursively filter event through parent(s) first.
-        if parent := node.parent:
-            filtered |= self._filter_through(event, parent, target)
-        # If parent(s) didn't filter it out, pass to node's filter.
-        if not filtered and (f := node.filter):
-            filtered |= f(event, target)
-        return filtered
+        # First give this node a chance to filter the event.
+        if node.filter_event(event, target):
+            # Node filtered out the event, so we stop here.
+            return True
+        if (parent := node.parent) is None:
+            # Node did not filter out the event, and we've reached the top of the graph.
+            return False
+        # Recursively filter the event through node's parent.
+        return self._filter_through(event, parent, target)
 
     def _handle_event(self, event: Any) -> bool:
         from vispy.scene import ViewBox
 
         # Pass the event to the view
         if isinstance(event, MouseEvent):
+            handled = False
             # Find the visual under the mouse
             visuals = self._canvas.visuals_at(event.pos)
             visual = next(filter(lambda v: not isinstance(v, ViewBox), visuals), None)
-            if not visual:
-                return False
-            # Find the scenex node associated with the visual
-            if visual not in self._visual_to_node:
-                for view in self._views:
-                    for child in view.scene.children:
-                        if get_adaptor(child)._snx_get_native() == visual:
-                            self._visual_to_node[visual] = child
-                self._visual_to_node.setdefault(visual, None)
-            if node := self._visual_to_node.get(visual, None):
-                # Filter through parent scenes to child
-                self._filter_through(event, node, node)
+            if not handled and visual:
+                # Find the scenex node associated with the visual
+                if visual not in self._visual_to_node:
+                    for view in self._views:
+                        for child in view.scene.children:
+                            if get_adaptor(child)._snx_get_native() == visual:
+                                self._visual_to_node[visual] = child
+                    self._visual_to_node.setdefault(visual, None)
+                if node := self._visual_to_node.get(visual, None):
+                    # Filter through parent scenes to child
+                    self._filter_through(event, node, node)
+            # No visual selected - move the camera
+            # FIXME: Move this to the camera, somehow?
+            if (
+                not handled
+                and event.type == "move"
+                and MouseButton.LEFT in event.buttons
+                and self._last_canvas_pos is not None
+            ):
+                # FIXME: Which camera to use?
+                cam = self._views[0].camera
+                if cam.type == "panzoom":
+                    # PanZoomCamera
+                    p1 = cam.transform.imap(self._last_canvas_pos)
+                    p2 = cam.transform.imap(event.pos)
+                    cam.transform = cam.transform.translated(
+                        (p1[0] - p2[0], p2[1] - p1[1])
+                    )
 
-        return False
+            self._last_canvas_pos = event.pos
+
+        return True
 
     def _snx_get_native(self) -> Any:
         return self._canvas.native

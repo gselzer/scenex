@@ -84,7 +84,13 @@ class View(ViewAdaptor):
         self._cam_adaptor = cast("_camera.Camera", get_adaptor(cam))
         self._vispy_camera = self._cam_adaptor._vispy_node
         if hasattr(self, "_vispy_viewbox"):
+            # s, t = self._vispy_camera.transform.scale, self._vispy_camera.transform.translate
             self._vispy_viewbox.camera = self._vispy_camera
+            # self._vispy_viewbox.camera.transform.scale = s
+            # self._vispy_viewbox.camera.transform.translate = t
+            self._vispy_camera._viewbox_set(self._vispy_viewbox)
+            # FIXME: The transform matrix is not correct after this.
+            print("FIXME")
 
     def _draw(self) -> None:
         self._vispy_viewbox.update()

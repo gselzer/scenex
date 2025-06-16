@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from annotated_types import Interval
 from cmap import Color
 from pydantic import Field
 
 from .node import Node
+
+if TYPE_CHECKING:
+    import numpy as np
 
 SymbolName = Literal[
     "disc",
@@ -54,3 +57,8 @@ class Points(Node):
     )
 
     antialias: float = Field(default=1, description="Anti-aliasing factor, in px.")
+
+    def passes_through(
+        self, ray_origin: np.ndarray, ray_direction: np.ndarray
+    ) -> float | None:
+        return None
