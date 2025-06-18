@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
+from scenex.model._transform import Transform
+
 from .node import Node
 
 if TYPE_CHECKING:
@@ -33,6 +35,10 @@ class Camera(Node):
     zoom: float = Field(default=1.0, description="Zoom factor of the camera.")
     center: Position = Field(
         default=(0, 0, 0), description="Center position of the view."
+    )
+    projection: Transform = Field(
+        default_factory=Transform,
+        description="Describes how 3D points are mapped to a 2D canvas",
     )
 
     def passes_through(

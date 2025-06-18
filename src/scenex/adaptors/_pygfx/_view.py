@@ -39,6 +39,8 @@ class View(ViewAdaptor):
         canvas_adaptor = cast("_canvas.Canvas", get_adaptor(view.canvas))
         wgpu_canvas = canvas_adaptor._snx_get_native()
         self._renderer = pygfx.renderers.WgpuRenderer(wgpu_canvas)
+        size = tuple(wgpu_canvas.get_logical_size())
+        self._rect = (0, 0, float(size[0]), float(size[1]))
 
         self._snx_set_scene(view.scene)
         self._snx_set_camera(view.camera)
@@ -66,14 +68,21 @@ class View(ViewAdaptor):
 
     def _draw(self) -> None:
         renderer = self._renderer
-        renderer.render(self._pygfx_scene, self._pygfx_cam)
+        renderer.render(self._pygfx_scene, self._pygfx_cam, rect=self._rect)
         renderer.request_draw()
 
     def _snx_set_position(self, arg: tuple[float, float]) -> None:
         logger.warning("View.set_position not implemented for pygfx")
 
     def _snx_set_size(self, arg: tuple[float, float] | None) -> None:
-        logger.warning("View.set_size not implemented for pygfx")
+        if arg is None:
+            logger.warning(
+                "Ignoring View.set_size(None): Don't know how to handle this..."
+            )
+        else:
+            r = self._snx_get_native().rect
+            self._snx_get_native().rect = (r[0], r[1], arg[0], arg[1])
+            # FIXME: Camera projection transform should also be updated...
 
     def _snx_set_background_color(self, color: Color | None) -> None:
         colors = (color.rgba,) if color is not None else ()

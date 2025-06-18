@@ -13,6 +13,7 @@ from ._node import Node
 
 if TYPE_CHECKING:
     from scenex import model
+    from scenex.model import Transform
 
 logger = logging.getLogger("scenex.adaptors.pygfx")
 
@@ -60,6 +61,10 @@ class Camera(Node, CameraAdaptor):
         # and should perhaps be moved to the View Adaptor
         self.pygfx_controller.add_default_event_handlers(viewport, self._pygfx_node)
 
+    def _snx_set_projection(self, arg: Transform) -> None:
+        pass
+        # self._pygfx_node.projection_matrix = arg.root
+
     def _snx_zoom_to_fit(self, margin: float) -> None:
         # reset camera to fit all objects
         if not (scene := self._camera_model.parent):
@@ -79,3 +84,5 @@ class Camera(Node, CameraAdaptor):
             cam.width = width
             cam.height = height
         cam.zoom = 1 - margin
+        self._camera_model.transform = cam.local.matrix.T  # type: ignore
+        self._camera_model.projection = cam.projection_matrix  # type: ignore
