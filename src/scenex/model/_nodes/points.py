@@ -71,6 +71,7 @@ class Points(Node):
             coords = np.pad(
                 self.coords, ((0, 0), (0, 1)), mode="constant", constant_values=0
             )
+        coords = self.transform.map(coords)[:, :3]
 
         ray_diff = coords - ray_origin
 
