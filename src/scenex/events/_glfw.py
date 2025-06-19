@@ -45,7 +45,9 @@ class GlfwEventFilter(EventFilter):
 
     def _cursor_pos_callback(self, window: Any, xpos: float, ypos: float) -> None:
         """Handle cursor position events."""
-        self._filter_func(MouseEvent(type="move", pos=(xpos, ypos), buttons=set()))
+        self._filter_func(
+            MouseEvent(type="move", pos=(xpos, ypos), buttons=self._active_buttons)
+        )
 
     def _mouse_button_callback(
         self, window: Any, button: int, action: int, mods: int

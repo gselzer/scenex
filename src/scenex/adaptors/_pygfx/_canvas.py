@@ -71,17 +71,19 @@ class Canvas(CanvasAdaptor):
             cast("View", get_adaptor(view))._draw()
 
     def _snx_add_view(self, view: model.View) -> None:
-        if len(self._views):
-            raise NotImplementedError("AAAAH I haven't thought about this yet!")
         # This logic should go in the canvas node, I think
-        view.layout.x = 0
-        view.layout.y = 0
-        view.layout.width = self._wgpu_canvas.get_logical_size()[0]
-        view.layout.height = self._wgpu_canvas.get_logical_size()[1]  # type: ignore
         self._views.append(view)
-        # adaptor = cast("View", view.backend_adaptor())
-        # adaptor._pygfx_cam.set_viewport(self._viewport)
-        # self._views.append(adaptor)
+
+        # FIXME: Allow customization
+        x = 0.0
+        dx = float(self._wgpu_canvas.get_logical_size()[0]) / len(self._views)
+
+        for view in self._views:
+            view.layout.x = x
+            view.layout.y = 0
+            view.layout.width = dx
+            view.layout.height = self._wgpu_canvas.get_logical_size()[1]  # type: ignore
+            x += dx
 
     def _snx_set_width(self, arg: int) -> None:
         _, height = cast("tuple[float, float]", self._wgpu_canvas.get_logical_size())

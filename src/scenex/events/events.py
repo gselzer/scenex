@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pylinalg as la
 
+from scenex.model import Camera
+
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from typing import Any
 
     from scenex.model import Canvas, Node, View
@@ -54,8 +57,9 @@ class MouseEvent(Event):
 
 
 def _handle_event(canvas: Canvas, event: Event) -> bool:
+    handled = False
     if isinstance(event, MouseEvent):
-        for view in canvas.views:
+        if view := _containing_view(event, canvas.views):
             # FIXME: This only works for pan/zoom
             ray_origin: np.ndarray = np.asarray(_canvas_to_world(view, event.pos))
             # FIXME: Account for camera transform?
@@ -70,9 +74,21 @@ def _handle_event(canvas: Canvas, event: Event) -> bool:
             # Or do we only report until we hit a node with opacity=1?
             for node, _depth in sorted(through, key=lambda e: e[1]):
                 # Filter through parent scenes to child
-                _filter_through(event, node, node)
+                handled |= _filter_through(event, node, node)
+            # No nodes in the view handled the event - pass it to the camera
+            if not handled:
+                # FIXME: To move the camera around, we need the world position.
+                # _move_camera(view.camera, ray_origin)
+                view.camera.filter_event(event, view.camera)
 
-    return False
+    return handled
+
+
+def _containing_view(event: MouseEvent, views: Sequence[View]) -> View | None:
+    for view in views:
+        if event.pos in view.layout:
+            return view
+    return None
 
 
 def _filter_through(event: Any, node: Node, target: Node) -> bool:
@@ -132,3 +148,28 @@ def _canvas_to_world(
     # NB In vispy, (0.5,0.5) is a center of an image pixel, while in pygfx
     # (0,0) is the center. We conform to vispy's standard.
     return (pos_world[0] + 0.5, pos_world[1] + 0.5, pos_world[2] + 0.5)
+
+
+class _DefaultCameraFilter:
+    # TODO: This is an IntFlag - set not necessary
+    _last_pos: tuple[float, float] | None = None
+
+    def __call__(self, event: Event, node: Node) -> bool:
+        assert isinstance(node, Camera)
+
+        if isinstance(event, MouseEvent):
+            if (
+                event.type == "move"
+                and MouseButton.LEFT in event.buttons
+                and self._last_pos is not None
+            ):
+                # FIXME: Event position needs to be converted into world positions
+                p1 = node.transform.imap(self._last_pos)
+                p2 = node.transform.imap(event.pos)
+                node.transform = node.transform.translated(
+                    (p1[0] - p2[0], p2[1] - p1[1])
+                )
+
+            self._last_pos = event.pos
+
+        return False

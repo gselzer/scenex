@@ -24,7 +24,7 @@ class Canvas(EventedBase):
     """
 
     width: int = Field(default=500, description="The width of the canvas in pixels.")
-    height: int = Field(default=500, description="The height of the canvas in pixels.")
+    height: int = Field(default=250, description="The height of the canvas in pixels.")
     background_color: Color = Field(
         default=Color("black"), description="The background color."
     )

@@ -36,6 +36,7 @@ class View(ViewAdaptor):
     _pygfx_cam: pygfx.Camera
 
     def __init__(self, view: model.View, **backend_kwargs: Any) -> None:
+        self._model = view
         canvas_adaptor = cast("_canvas.Canvas", get_adaptor(view.canvas))
         wgpu_canvas = canvas_adaptor._snx_get_native()
         self._renderer = pygfx.renderers.WgpuRenderer(wgpu_canvas)
@@ -67,6 +68,9 @@ class View(ViewAdaptor):
         self._cam_adaptor.pygfx_controller.register_events(self._renderer)
 
     def _draw(self) -> None:
+        # FIXME: Ideally we wouldn't update this via polling
+        self._model.camera.projection = self._pygfx_cam.projection_matrix  # type: ignore
+
         renderer = self._renderer
         renderer.render(self._pygfx_scene, self._pygfx_cam, rect=self._rect)
         renderer.request_draw()
