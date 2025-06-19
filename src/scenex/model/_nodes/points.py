@@ -62,32 +62,50 @@ class Points(Node):
         # Math graciously adapted from:
         # https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
 
-        # TODO: This could be overly restrictive
-        if not isinstance(self.coords, np.ndarray):
-            return None
+        # Step 1 - Determine whether the ray passes through any points
 
-        coords = self.coords
+        # Convert coords to a 3-dimensional numpy array
+        coords = np.asarray(self.coords)
         if coords.ndim < len(ray_origin):
             coords = np.pad(
                 self.coords, ((0, 0), (0, 1)), mode="constant", constant_values=0
             )
+        # And then transform the points to world space
         coords = self.transform.map(coords)[:, :3]
 
-        ray_diff = coords - ray_origin
-
+        # For each point, determine whether the ray passes through its sphere.
+        #
+        # The sphere is defined by the center n=(t, u, v) and a radius r such that any
+        # point p=(x, y, z) on the plane satisfies (t-x)^2 + (u-y)^2 + (v-z)^2 = r^2.
+        # Note that r is defined in our model as:
         r = self.size / 2 + (self.edge_width if self.edge_width else 0)
+        # Note that our intersection point p could be any point along our ray, defined
+        # as (ray_origin + ray_direction * t). Substituting this definition into the
+        # sphere equation, yields a quadratic equation at^2 + bt + c = 0, where a, b,
+        # and c have the following definitions:
+        ray_diff = coords - ray_origin
         a = np.dot(ray_direction, ray_direction)
         b = -2 * np.dot(ray_diff, ray_direction)
         c = np.sum(ray_diff * ray_diff, axis=1) - r**2
 
-        discriminant = b**2 - 4 * a * c
+        # And there is a sphere intersection if the equation's discriminant is
+        # non-negative:
+        discriminants = b**2 - 4 * a * c
+        intersecting_indices = np.where(discriminants >= 0)[0]
+        if not intersecting_indices.size:
+            return None
 
-        intersecting_indices = np.where(discriminant >= 0)[0]
-        if intersecting_indices.size:
-            print(intersecting_indices)
+        # Step 2 - Determine the depth of intersection
 
-        # Step 1 - Determine where the ray intersects the image plane
+        # We have (potentially) multiple points intersected by our ray, described
+        # by the variable t in our ray's definition. Let's focus on those:
+        b = b[intersecting_indices]
+        discriminants = discriminants[intersecting_indices]
+        # We only care about the closest such intersection, i.e. the smallest value of
+        # t. Thus, for each intersecting sphere we compute the one or two values of t
+        # where our ray intersects. Note that t = (-b +- sqrt(discriminant)) / 2a
+        pos_solutions = -b + np.sqrt(discriminants) / (2 * a)
+        neg_solutions = -b - np.sqrt(discriminants) / (2 * a)
 
-        # Step 1 - Determine where the ray intersects the image plane
-
-        return None
+        # return the smallest such value:
+        return float(np.hstack((pos_solutions, neg_solutions)).min())
