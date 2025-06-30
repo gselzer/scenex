@@ -1,4 +1,6 @@
-from typing import Annotated, Any, Literal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import numpy as np
 from annotated_types import Interval
@@ -6,6 +8,9 @@ from cmap import Colormap
 from pydantic import Field
 
 from .node import Node
+
+if TYPE_CHECKING:
+    from scenex.events.events import Ray
 
 InterpolationMode = Literal["nearest", "linear", "bicubic"]
 
@@ -35,9 +40,7 @@ class Image(Node):
         default="nearest", description="Interpolation mode."
     )
 
-    def passes_through(
-        self, ray_origin: np.ndarray, ray_direction: np.ndarray
-    ) -> float | None:
+    def passes_through(self, ray: Ray) -> float | None:
         # Math graciously adapted from:
         # https://raytracing.github.io/books/RayTracingTheNextWeek.html#quadrilaterals
 
@@ -58,12 +61,14 @@ class Image(Node):
         d = np.dot(normal, image_origin)
         # ...we can find the depth t at which the ray would intersect the plane.
         #
-        # Note that our ray is defined by (ray_origin + ray_direction * t).
-        # This is just np.dot(normal, ray_origin + ray_direction * t) = d,
+        # Note that our ray is defined by (ray.origin + ray.direction * t).
+        # This is just np.dot(normal, ray.origin + ray.direction * t) = d,
         # rearranged to solve for t.
-        t = (d - np.dot(normal, ray_origin)) / np.dot(normal, ray_direction)
+        t = (d - np.dot(normal, ray.origin)) / np.dot(normal, ray.direction)
         # With our value of t, we can find the intersection point
-        intersection = ray_origin + t * ray_direction
+        intersection = tuple(
+            a + t * b for a, b in zip(ray.origin, ray.direction, strict=False)
+        )
 
         # Step 2 - Determine whether the ray hits the image.
 

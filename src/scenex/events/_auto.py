@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from scenex.events import Event
+    from scenex.model import Canvas
 
 
 class EventFilter:
@@ -64,7 +65,7 @@ class App:
         raise NotImplementedError("Must be implemented by subclasses.")
 
     def install_event_filter(
-        self, canvas: Any, filter_func: Callable[[Event], bool]
+        self, canvas: Any, model_canvas: Canvas, filter_func: Callable[[Event], bool]
     ) -> EventFilter:
         raise NotImplementedError("Must be implemented by subclasses.")
 

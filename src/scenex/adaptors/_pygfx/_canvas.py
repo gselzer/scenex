@@ -54,7 +54,7 @@ class Canvas(CanvasAdaptor):
         for view in canvas.views:
             self._snx_add_view(view)
         self._filter = app().install_event_filter(
-            self._wgpu_canvas, lambda e: _handle_event(canvas, e)
+            self._wgpu_canvas, canvas, lambda e: _handle_event(canvas, e)
         )
 
     def _snx_get_native(self) -> BaseRenderCanvas:

@@ -2,19 +2,54 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
+from scenex.events.events import MouseButton, MouseEvent
 from scenex.model._transform import Transform
 
 from .node import Node
 
 if TYPE_CHECKING:
-    import numpy as np
+    from collections.abc import Callable
+
+    from scenex.events.events import Event, Ray
 
 CameraType = Literal["panzoom", "perspective"]
 Position2D = tuple[float, float]
 Position3D = tuple[float, float, float]
 Position = Position2D | Position3D
+
+
+class _DefaultCameraFilter:
+    def __init__(self) -> None:
+        self.drag_pos: tuple[float, float] | None = None
+
+    def __call__(self, event: Event, node: Node) -> bool:
+        assert isinstance(node, Camera)
+        handled = False
+
+        # FIXME: Probably doesn't work outside of panzoom camera
+        if isinstance(event, MouseEvent):
+            new_pos = event.world_ray.origin[:2]
+
+            # Panning involves keeping a particular position underneath the cursor.
+            # That position is recorded on a left mouse button press.
+            if event.type == "press" and MouseButton.LEFT in event.buttons:
+                self.drag_pos = new_pos
+            # Every time the cursor is moved, until the left mouse button is released,
+            # We translate the camera such that the position is back under the cursor
+            # (i.e. under the world ray origin)
+            elif (
+                event.type == "move"
+                and MouseButton.LEFT in event.buttons
+                and self.drag_pos
+            ):
+                dx = self.drag_pos[0] - new_pos[0]
+                dy = self.drag_pos[1] - new_pos[1]
+                node.transform = node.transform.translated((dx, dy))
+                handled = True
+
+        return handled
 
 
 class Camera(Node):
@@ -40,8 +75,9 @@ class Camera(Node):
         default_factory=Transform,
         description="Describes how 3D points are mapped to a 2D canvas",
     )
+    _filter: Callable[[Event, Node], bool] | None = PrivateAttr(
+        default_factory=_DefaultCameraFilter
+    )
 
-    def passes_through(
-        self, ray_origin: np.ndarray, ray_direction: np.ndarray
-    ) -> float | None:
+    def passes_through(self, ray: Ray) -> float | None:
         return None

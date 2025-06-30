@@ -22,11 +22,11 @@ from scenex.model._transform import Transform
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
 
-    import numpy as np
     import numpy.typing as npt
     from typing_extensions import Self, TypedDict, Unpack
 
     from scenex.events import Event
+    from scenex.events.events import Ray
 
     from .camera import Camera
     from .image import Image
@@ -138,9 +138,7 @@ class Node(EventedBase):
             child.parent = None
             self.child_removed.emit(child)
 
-    def passes_through(
-        self, ray_origin: np.ndarray, ray_direction: np.ndarray
-    ) -> float | None:
+    def passes_through(self, ray: Ray) -> float | None:
         """Returns the depth t at which the provided ray intersects this node.
 
         The ray, in this case, is defined by R(t) = ray_origin + ray_direction * t,
@@ -148,11 +146,8 @@ class Node(EventedBase):
 
         Parameters
         ----------
-        ray_origin : np.ndarray
-            The origin point of the ray
-
-        ray_direction : np.ndarray
-            The direction of the ray
+        ray : Ray
+            The ray passing through the scene
 
         Returns
         -------

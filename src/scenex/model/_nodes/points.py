@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 import numpy as np
 from annotated_types import Interval
@@ -8,6 +8,9 @@ from cmap import Color
 from pydantic import Field
 
 from .node import Node
+
+if TYPE_CHECKING:
+    from scenex.events.events import Ray
 
 SymbolName = Literal[
     "disc",
@@ -56,9 +59,7 @@ class Points(Node):
 
     antialias: float = Field(default=1, description="Anti-aliasing factor, in px.")
 
-    def passes_through(
-        self, ray_origin: np.ndarray, ray_direction: np.ndarray
-    ) -> float | None:
+    def passes_through(self, ray: Ray) -> float | None:
         # Math graciously adapted from:
         # https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
 
@@ -66,7 +67,7 @@ class Points(Node):
 
         # Convert coords to a 3-dimensional numpy array
         coords = np.asarray(self.coords)
-        if coords.ndim < len(ray_origin):
+        if coords.ndim < len(ray.origin):
             coords = np.pad(
                 self.coords, ((0, 0), (0, 1)), mode="constant", constant_values=0
             )
@@ -80,12 +81,12 @@ class Points(Node):
         # Note that r is defined in our model as:
         r = self.size / 2 + (self.edge_width if self.edge_width else 0)
         # Note that our intersection point p could be any point along our ray, defined
-        # as (ray_origin + ray_direction * t). Substituting this definition into the
+        # as (ray.origin + ray.direction * t). Substituting this definition into the
         # sphere equation, yields a quadratic equation at^2 + bt + c = 0, where a, b,
         # and c have the following definitions:
-        ray_diff = coords - ray_origin
-        a = np.dot(ray_direction, ray_direction)
-        b = -2 * np.dot(ray_diff, ray_direction)
+        ray_diff = coords - ray.origin
+        a = np.dot(ray.direction, ray.direction)
+        b = -2 * np.dot(ray_diff, ray.direction)
         c = np.sum(ray_diff * ray_diff, axis=1) - r**2
 
         # And there is a sphere intersection if the equation's discriminant is

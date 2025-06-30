@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING
 import glfw
 
 from scenex.events._auto import App, EventFilter
-from scenex.events.events import MouseButton, MouseEvent
+from scenex.events.events import MouseButton, MouseEvent, _canvas_to_world
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
-    from scenex.events import Event
+    from scenex import Canvas
+    from scenex.events.events import Event
 
 BUTTONMAP = {
     glfw.MOUSE_BUTTON_LEFT: MouseButton.LEFT,
@@ -21,14 +22,20 @@ BUTTONMAP = {
 
 
 class GlfwEventFilter(EventFilter):
-    def __init__(self, canvas: Any, filter_func: Callable[[Event], bool]) -> None:
-        self._canvas = canvas
+    def __init__(
+        self, canvas: Any, model_canvas: Canvas, filter_func: Callable[[Event], bool]
+    ) -> None:
+        self._canvas = model_canvas
         self._filter_func = filter_func
         self._active_buttons: set[MouseButton] = set()
         self._window_id = self._guess_id(canvas)
         # TODO: Maybe save the old callbacks?
         glfw.set_cursor_pos_callback(self._window_id, self._cursor_pos_callback)
+        glfw.set_cursor_enter_callback(
+            self._window_id, self._cursor_enter_leave_callback
+        )
         glfw.set_mouse_button_callback(self._window_id, self._mouse_button_callback)
+        self.pos = (0, 0)
 
     def _guess_id(self, canvas: Any) -> Any:
         # vispy
@@ -45,25 +52,55 @@ class GlfwEventFilter(EventFilter):
 
     def _cursor_pos_callback(self, window: Any, xpos: float, ypos: float) -> None:
         """Handle cursor position events."""
-        self._filter_func(
-            MouseEvent(type="move", pos=(xpos, ypos), buttons=self._active_buttons)
-        )
+        canvas_pos = (xpos, ypos)
+        if ray := _canvas_to_world(self._canvas, canvas_pos):
+            self._filter_func(
+                MouseEvent(
+                    type="move",
+                    canvas_pos=canvas_pos,
+                    world_ray=ray,
+                    # buttons={MouseButton.LEFT},
+                    buttons=self._active_buttons,
+                )
+            )
+
+    def _cursor_enter_leave_callback(self, window: Any, entered: int) -> None:
+        """Handle enter/leave events."""
+        if entered:
+            # entered window
+            pass
+        else:
+            # left window
+            pass
 
     def _mouse_button_callback(
         self, window: Any, button: int, action: int, mods: int
     ) -> None:
         pos = glfw.get_cursor_pos(window)
+        if not (ray := _canvas_to_world(self._canvas, pos)):
+            return
+
         # Mouse click event
         if button in BUTTONMAP:
             if action == glfw.PRESS:
                 self._active_buttons.add(BUTTONMAP[button])
                 self._filter_func(
-                    MouseEvent(type="press", pos=pos, buttons=self._active_buttons)
+                    MouseEvent(
+                        type="press",
+                        canvas_pos=pos,
+                        world_ray=ray,
+                        buttons=self._active_buttons,
+                    )
                 )
             elif action == glfw.RELEASE:
                 self._active_buttons.remove(BUTTONMAP[button])
                 self._filter_func(
-                    MouseEvent(type="release", pos=pos, buttons=self._active_buttons)
+                    MouseEvent(
+                        type="release",
+                        canvas_pos=pos,
+                        world_ray=ray,
+                        buttons=self._active_buttons,
+                    )
                 )
 
 
@@ -76,9 +113,9 @@ class GlfwAppWrap(App):
         return None
 
     def install_event_filter(
-        self, canvas: Any, filter_func: Callable[[Event], bool]
+        self, canvas: Any, model_canvas: Canvas, filter_func: Callable[[Event], bool]
     ) -> EventFilter:
-        return GlfwEventFilter(canvas, filter_func)
+        return GlfwEventFilter(canvas, model_canvas, filter_func)
 
     def show(self, canvas: Any, visible: bool) -> None:
         if visible:

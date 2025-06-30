@@ -8,19 +8,23 @@ from qtpy.QtGui import QMouseEvent
 from qtpy.QtWidgets import QApplication, QWidget
 
 from scenex.events._auto import App, EventFilter
-from scenex.events.events import MouseButton, MouseEvent
+from scenex.events.events import MouseButton, MouseEvent, _canvas_to_world
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
+    from scenex import Canvas
     from scenex.events import Event
 
 
 class QtEventFilter(QObject, EventFilter):
-    def __init__(self, canvas: QWidget, filter_func: Callable[[Event], bool]) -> None:
+    def __init__(
+        self, canvas: Any, model_canvas: Canvas, filter_func: Callable[[Event], bool]
+    ) -> None:
         super(QObject, self).__init__()
         self._canvas = canvas
+        self._model_canvas = model_canvas
         self._filter_func = filter_func
         self._active_buttons: set[MouseButton] = set()
 
@@ -47,28 +51,43 @@ class QtEventFilter(QObject, EventFilter):
         """Convert a QEvent to a SceneX Event."""
         if isinstance(qevent, QMouseEvent):
             pos = qevent.pos()
+            canvas_pos = (pos.x(), pos.y())
+            if not (ray := _canvas_to_world(self._model_canvas, canvas_pos)):
+                return None
+
+            print(f"Canvas position {pos}, world position {ray.origin}")
             etype = qevent.type()
             btn = self.mouse_btn(qevent.button())
             if etype == QEvent.Type.MouseMove:
                 return MouseEvent(
-                    type="move", pos=(pos.x(), pos.y()), buttons=self._active_buttons
+                    type="move",
+                    canvas_pos=canvas_pos,
+                    world_ray=ray,
+                    buttons=self._active_buttons,
                 )
             elif etype == QEvent.Type.MouseButtonDblClick:
                 self._active_buttons.add(btn)
                 return MouseEvent(
                     type="double_click",
-                    pos=(pos.x(), pos.y()),
+                    canvas_pos=canvas_pos,
+                    world_ray=ray,
                     buttons=self._active_buttons,
                 )
             elif etype == QEvent.Type.MouseButtonPress:
                 self._active_buttons.add(btn)
                 return MouseEvent(
-                    type="press", pos=(pos.x(), pos.y()), buttons=self._active_buttons
+                    type="press",
+                    canvas_pos=canvas_pos,
+                    world_ray=ray,
+                    buttons=self._active_buttons,
                 )
             elif etype == QEvent.Type.MouseButtonRelease:
                 self._active_buttons.remove(btn)
                 return MouseEvent(
-                    type="release", pos=(pos.x(), pos.y()), buttons=self._active_buttons
+                    type="release",
+                    canvas_pos=canvas_pos,
+                    world_ray=ray,
+                    buttons=self._active_buttons,
                 )
         return None
 
@@ -90,9 +109,9 @@ class QtAppWrap(App):
         return qapp
 
     def install_event_filter(
-        self, canvas: Any, filter_func: Callable[[Event], bool]
+        self, canvas: Any, model_canvas: Canvas, filter_func: Callable[[Event], bool]
     ) -> EventFilter:
-        f = QtEventFilter(canvas, filter_func)
+        f = QtEventFilter(canvas, model_canvas, filter_func)
         cast("QWidget", canvas).installEventFilter(f)
         return f
 
