@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import IntFlag, auto
 from typing import TYPE_CHECKING, NamedTuple
 
+import numpy as np
 import pylinalg as la
 
 # from scenex.model import Camera
@@ -43,7 +44,6 @@ class MouseEvent(Event):
     """A general mouse interaction event."""
 
     type: str
-    # TODO: Maybe a 3D vector/ray?
     canvas_pos: tuple[float, float]
     world_ray: Ray
     # TODO: Enum?
@@ -113,7 +113,7 @@ def _canvas_to_world(canvas: Canvas, canvas_pos: tuple[float, float]) -> Ray | N
     # Convert position to Normalized Device Coordinates (NDC) - i.e., within [-1, 1]
     x = pos_rel[0] / width * 2 - 1
     y = -(pos_rel[1] / height * 2 - 1)
-    pos_ndc = (x, y, 0)
+    pos_ndc = (x, y)
 
     # Note that the camera matrix is the matrix multiplication of:
     # * The projection matrix, which projects local space (the rectangular
@@ -121,17 +121,17 @@ def _canvas_to_world(canvas: Canvas, canvas_pos: tuple[float, float]) -> Ray | N
     # * The view matrix, i.e. the transform positioning the camera in the world.
     # The result is a matrix mapping world coordinates
     camera_matrix = view.camera.projection @ view.camera.transform.inv().T
-    # TODO: Is this addition to pos_ndc ever (functionally) nonzero?
-    camera_position = view.camera.transform.root[3, :3]
-    pos_diff = la.vec_transform(camera_position, camera_matrix)
+    pos_diff = la.vec_transform(view.camera.transform.root[3, :3], camera_matrix.T)
     # Unproject the canvas NDC coordinates into world space.
-    pos_world = la.vec_unproject(pos_ndc[:2] + pos_diff[:2], camera_matrix)
-    # print(f"NDC pos: {pos_ndc}, NDC diff: {pos_diff}, world_pos: {pos_world}")
+    pos_world = la.vec_unproject(pos_ndc + pos_diff[:2], camera_matrix)
 
-    # NB In vispy, (0.5,0.5) is a center of an image pixel, while in pygfx
-    # (0,0) is the center. We conform to vispy's standard.
-    # FIXME: Ray direction must be transformed by the camera
+    # To find the direction of the ray, we find a unprojected point farther away
+    # and subtract the closer point.
+    pos_world_farther = la.vec_unproject(pos_ndc + pos_diff[:2], camera_matrix, depth=1)
+    direction = pos_world_farther - pos_world
+    direction = direction / np.linalg.norm(direction)
+
     return Ray(
-        origin=(pos_world[0] + 0.5, pos_world[1] + 0.5, pos_world[2] + 0.5),
-        direction=(0, 0, 1),
+        origin=tuple(pos_world),
+        direction=tuple(direction),
     )
