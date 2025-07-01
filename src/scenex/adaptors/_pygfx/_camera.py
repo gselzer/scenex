@@ -7,14 +7,13 @@ import numpy as np
 import pygfx
 
 from scenex.adaptors._base import CameraAdaptor
-from scenex.model import Transform
-from scenex.model._transform import Matrix3D
 
 from ._adaptor_registry import get_adaptor
 from ._node import Node
 
 if TYPE_CHECKING:
     from scenex import model
+    from scenex.model import Transform
 
 logger = logging.getLogger("scenex.adaptors.pygfx")
 
@@ -86,6 +85,6 @@ class Camera(Node, CameraAdaptor):
             cam.height = height
             self._camera_model.center = tuple(np.mean(bb, axis=0))
         cam.zoom = 2 - margin
-        self._camera_model.transform = Transform(Matrix3D(cam.local.matrix.T))
         # FIXME: Pyright
+        self._camera_model.transform = cam.local.matrix.T  # pyright: ignore[reportAttributeAccessIssue]
         self._camera_model.projection = cam.projection_matrix  # pyright: ignore[reportAttributeAccessIssue]
