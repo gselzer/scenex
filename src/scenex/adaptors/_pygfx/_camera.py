@@ -84,7 +84,7 @@ class Camera(Node, CameraAdaptor):
             cam.width = width
             cam.height = height
             self._camera_model.center = tuple(np.mean(bb, axis=0))
-        cam.zoom = 2 - margin
+        cam.zoom = 1 - margin
         # FIXME: Pyright
         self._camera_model.transform = cam.local.matrix.T  # pyright: ignore[reportAttributeAccessIssue]
         self._camera_model.projection = cam.projection_matrix  # pyright: ignore[reportAttributeAccessIssue]
