@@ -66,9 +66,7 @@ def _handle_event(canvas: Canvas, event: Event) -> bool:
                 # Filter through parent scenes to child
                 handled |= _filter_through(event, node, node)
             # No nodes in the view handled the event - pass it to the camera
-            if not handled:
-                # FIXME: To move the camera around, we need the world position.
-                # _move_camera(view.camera, ray_origin)
+            if not handled and view.camera.interactive:
                 handled |= view.camera.filter_event(event, view.camera)
 
     return handled
@@ -83,8 +81,11 @@ def _containing_view(pos: tuple[float, float], canvas: Canvas) -> View | None:
 
 def _filter_through(event: Any, node: Node, target: Node) -> bool:
     """Filter the event through the scene graph to the target node."""
+    # TODO: Suppose a scene is not interactive. If the node is interactive, should it
+    # receive the event?
+
     # First give this node a chance to filter the event.
-    if node.filter_event(event, target):
+    if node.interactive and node.filter_event(event, target):
         # Node filtered out the event, so we stop here.
         return True
     if (parent := node.parent) is None:
