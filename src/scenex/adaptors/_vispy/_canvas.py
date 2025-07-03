@@ -5,9 +5,8 @@ from typing import TYPE_CHECKING, Any, TypeGuard, cast
 import numpy as np
 
 from scenex.adaptors._base import CanvasAdaptor
-from scenex.events import MouseEvent
 from scenex.events._auto import app
-from scenex.events.events import MouseButton
+from scenex.events.events import _handle_event
 
 from ._adaptor_registry import get_adaptor
 
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     from rendercanvas.base import BaseRenderCanvas
 
     from scenex import model
+    from scenex.model._view import View
 
     class SupportsHideShow(BaseRenderCanvas):
         def show(self) -> None: ...
@@ -39,69 +39,15 @@ class Canvas(CanvasAdaptor):
         if supports_hide_show(self._canvas.native):
             self._canvas.native.hide()
         self._grid = cast("Grid", self._canvas.central_widget.add_grid())
+        self._views: list[View] = []
         for view in canvas.views:
             self._snx_add_view(view)
-        self._views = canvas.views
         self._filter = app().install_event_filter(
-            self._canvas.native, self._handle_event
+            self._canvas.native, canvas, lambda e: _handle_event(canvas, e)
         )
 
         self._visual_to_node: dict[VisualNode, model.Node | None] = {}
         self._last_canvas_pos: tuple[float, float] | None = None
-
-    def _filter_through(self, event: Any, node: model.Node, target: model.Node) -> bool:
-        """Filter the event through the scene graph to the target node."""
-        # First give this node a chance to filter the event.
-        if node.filter_event(event, target):
-            # Node filtered out the event, so we stop here.
-            return True
-        if (parent := node.parent) is None:
-            # Node did not filter out the event, and we've reached the top of the graph.
-            return False
-        # Recursively filter the event through node's parent.
-        return self._filter_through(event, parent, target)
-
-    def _handle_event(self, event: Any) -> bool:
-        from vispy.scene import ViewBox
-
-        # Pass the event to the view
-        if isinstance(event, MouseEvent):
-            handled = False
-            # Find the visual under the mouse
-            visuals = self._canvas.visuals_at(event.pos)
-            visual = next(filter(lambda v: not isinstance(v, ViewBox), visuals), None)
-            if not handled and visual:
-                # Find the scenex node associated with the visual
-                if visual not in self._visual_to_node:
-                    for view in self._views:
-                        for child in view.scene.children:
-                            if get_adaptor(child)._snx_get_native() == visual:
-                                self._visual_to_node[visual] = child
-                    self._visual_to_node.setdefault(visual, None)
-                if node := self._visual_to_node.get(visual, None):
-                    # Filter through parent scenes to child
-                    self._filter_through(event, node, node)
-            # No visual selected - move the camera
-            # FIXME: Move this to the camera, somehow?
-            if (
-                not handled
-                and event.type == "move"
-                and MouseButton.LEFT in event.buttons
-                and self._last_canvas_pos is not None
-            ):
-                # FIXME: Which camera to use?
-                cam = self._views[0].camera
-                if cam.type == "panzoom":
-                    # PanZoomCamera
-                    p1 = cam.transform.imap(self._last_canvas_pos)
-                    p2 = cam.transform.imap(event.pos)
-                    cam.transform = cam.transform.translated(
-                        (p1[0] - p2[0], p2[1] - p1[1])
-                    )
-
-            self._last_canvas_pos = event.pos
-
-        return True
 
     def _snx_get_native(self) -> Any:
         return self._canvas.native
@@ -114,6 +60,18 @@ class Canvas(CanvasAdaptor):
         self._canvas.update()
 
     def _snx_add_view(self, view: model.View) -> None:
+        self._views.append(view)
+        # FIXME: Allow customization
+        x = 0.0
+        dx = float(self._canvas.size[0]) / len(self._views)
+
+        for view in self._views:
+            view.layout.x = x
+            view.layout.y = 0
+            view.layout.width = dx
+            view.layout.height = self._canvas.size[1]
+            x += dx
+
         self._grid.add_widget(get_adaptor(view)._snx_get_native())
 
     def _snx_set_width(self, arg: int) -> None:

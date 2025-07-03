@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-import numpy as np
 import vispy.scene
 
 from scenex.adaptors._base import CameraAdaptor
+from scenex.model import Transform
 
 from ._node import Node
 
 if TYPE_CHECKING:
     from scenex import model
-    from scenex.model import Transform
 
 
 class Camera(Node, CameraAdaptor):
@@ -41,10 +40,16 @@ class Camera(Node, CameraAdaptor):
         raise NotImplementedError()
 
     def _snx_set_transform(self, arg: Transform) -> None:
-        if isinstance(self._vispy_node, vispy.scene.PanZoomCamera):
-            self._vispy_node.center = tuple(np.asarray(arg)[3, :3])
-        else:
-            super()._snx_set_transform(arg)
+        # FIXME: Transform
+        return
+        # if isinstance(self._vispy_node, vispy.scene.PanZoomCamera):
+        #     self._vispy_node.center = tuple(np.asarray(arg)[3, :3])
+        # else:
+        #     super()._snx_set_transform(arg)
+
+    def _snx_set_projection(self, arg: Transform) -> None:
+        pass
+        # self._pygfx_node.projection_matrix = arg.root
 
     def _view_size(self) -> tuple[float, float] | None:
         """Return the size of first parent viewbox in pixels."""
@@ -53,3 +58,17 @@ class Camera(Node, CameraAdaptor):
     def _snx_zoom_to_fit(self, margin: float) -> None:
         # reset camera to fit all objects
         self._vispy_node.set_range()
+        projection = self._vispy_node.transform
+        if isinstance(projection, vispy.scene.transforms.STTransform):
+            self._camera_model.transform = (
+                Transform()
+                .scaled(projection.scale)
+                .translated(projection.translate)
+                .inv()
+            )
+            if vb := self._vispy_node.viewbox:
+                w, h = cast("tuple[float, float]", vb.size)
+                projection = (
+                    Transform().translated((-w / 2, -h / 2)).scaled((2 / w, 2 / h, 1)).T
+                )
+                self._camera_model.projection = projection

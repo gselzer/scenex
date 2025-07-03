@@ -55,7 +55,6 @@ class QtEventFilter(QObject, EventFilter):
             if not (ray := _canvas_to_world(self._model_canvas, canvas_pos)):
                 return None
 
-            print(f"Canvas position {pos}, world position {ray.origin}")
             etype = qevent.type()
             btn = self.mouse_btn(qevent.button())
             if etype == QEvent.Type.MouseMove:
