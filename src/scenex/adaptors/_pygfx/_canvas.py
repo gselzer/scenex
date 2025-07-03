@@ -48,6 +48,8 @@ class Canvas(CanvasAdaptor):
         self._canvas = canvas
         self._wgpu_canvas = canvas_cls()
 
+        # FIXME: This seems to not work on my laptop, without external monitors.
+        # The physical canvas size is still 625, 625...
         self._wgpu_canvas.set_logical_size(canvas.width, canvas.height)
         self._wgpu_canvas.set_title(canvas.title)
         self._views: list[model.View] = []
