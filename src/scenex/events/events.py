@@ -26,10 +26,10 @@ class Event:
 class MouseButton(IntFlag):
     """A general mouse interaction event."""
 
+    NONE = 0
     LEFT = auto()
     MIDDLE = auto()
     RIGHT = auto()
-    NONE = auto()
 
 
 class Ray(NamedTuple):
@@ -48,7 +48,7 @@ class MouseEvent(Event):
     world_ray: Ray
     # TODO: Enum?
     # TODO: Just a MouseButton, you can AND the MouseButtons
-    buttons: set[MouseButton]
+    buttons: MouseButton
 
 
 def _handle_event(canvas: Canvas, event: Event) -> bool:

@@ -27,7 +27,7 @@ class GlfwEventFilter(EventFilter):
     ) -> None:
         self._canvas = model_canvas
         self._filter_func = filter_func
-        self._active_buttons: set[MouseButton] = set()
+        self._active_button: MouseButton = MouseButton.NONE
         self._window_id = self._guess_id(canvas)
         # TODO: Maybe save the old callbacks?
         glfw.set_cursor_pos_callback(self._window_id, self._cursor_pos_callback)
@@ -59,8 +59,7 @@ class GlfwEventFilter(EventFilter):
                     type="move",
                     canvas_pos=canvas_pos,
                     world_ray=ray,
-                    # buttons={MouseButton.LEFT},
-                    buttons=self._active_buttons,
+                    buttons=self._active_button,
                 )
             )
 
@@ -83,23 +82,23 @@ class GlfwEventFilter(EventFilter):
         # Mouse click event
         if button in BUTTONMAP:
             if action == glfw.PRESS:
-                self._active_buttons.add(BUTTONMAP[button])
+                self._active_button |= BUTTONMAP[button]
                 self._filter_func(
                     MouseEvent(
                         type="press",
                         canvas_pos=pos,
                         world_ray=ray,
-                        buttons=self._active_buttons,
+                        buttons=self._active_button,
                     )
                 )
             elif action == glfw.RELEASE:
-                self._active_buttons.remove(BUTTONMAP[button])
+                self._active_button &= ~BUTTONMAP[button]
                 self._filter_func(
                     MouseEvent(
                         type="release",
                         canvas_pos=pos,
                         world_ray=ray,
-                        buttons=self._active_buttons,
+                        buttons=self._active_button,
                     )
                 )
 

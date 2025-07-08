@@ -26,7 +26,7 @@ class QtEventFilter(QObject, EventFilter):
         self._canvas = canvas
         self._model_canvas = model_canvas
         self._filter_func = filter_func
-        self._active_buttons: set[MouseButton] = set()
+        self._active_button: MouseButton = MouseButton.NONE
 
     def eventFilter(self, a0: QObject | None = None, a1: QEvent | None = None) -> bool:
         if isinstance(a0, QWidget) and isinstance(a1, QEvent):
@@ -62,31 +62,31 @@ class QtEventFilter(QObject, EventFilter):
                     type="move",
                     canvas_pos=canvas_pos,
                     world_ray=ray,
-                    buttons=self._active_buttons,
+                    buttons=self._active_button,
                 )
             elif etype == QEvent.Type.MouseButtonDblClick:
-                self._active_buttons.add(btn)
+                self._active_button |= btn
                 return MouseEvent(
                     type="double_click",
                     canvas_pos=canvas_pos,
                     world_ray=ray,
-                    buttons=self._active_buttons,
+                    buttons=self._active_button,
                 )
             elif etype == QEvent.Type.MouseButtonPress:
-                self._active_buttons.add(btn)
+                self._active_button |= btn
                 return MouseEvent(
                     type="press",
                     canvas_pos=canvas_pos,
                     world_ray=ray,
-                    buttons=self._active_buttons,
+                    buttons=self._active_button,
                 )
             elif etype == QEvent.Type.MouseButtonRelease:
-                self._active_buttons.remove(btn)
+                self._active_button &= ~btn
                 return MouseEvent(
                     type="release",
                     canvas_pos=canvas_pos,
                     world_ray=ray,
-                    buttons=self._active_buttons,
+                    buttons=self._active_button,
                 )
         return None
 
