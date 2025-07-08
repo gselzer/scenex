@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+import numpy as np
 import vispy.geometry
 import vispy.scene
 
@@ -12,6 +13,22 @@ from ._node import Node
 
 if TYPE_CHECKING:
     from scenex import model
+
+
+class _Arcball(vispy.scene.ArcballCamera):
+    def _get_dim_vectors(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:  # pyright: ignore[reportIncompatibleMethodOverride]
+        return np.array((0, +1, 0)), np.array((0, 0, +1)), np.array((+1, 0, 0))
+        # # Specify up and forward vector
+        # M = {'+z': [(0, 0, +1), (0, 1, 0)],
+        #      '-z': [(0, 0, -1), (0, 1, 0)],
+        #      '+y': [(0, +1, 0), (1, 0, 0)],
+        #      '-y': [(0, -1, 0), (1, 0, 0)],
+        #      '+x': [(+1, 0, 0), (0, 0, 1)],
+        #      '-x': [(-1, 0, 0), (0, 0, 1)],
+        #      }
+        # up, forward = M[self.up]
+        # right = np.cross(forward, up)
+        # return np.array(up), np.array(forward), right
 
 
 class Camera(Node, CameraAdaptor):
@@ -28,7 +45,8 @@ class Camera(Node, CameraAdaptor):
         elif camera.type == "perspective":
             # TODO: These settings were copied from the pygfx camera.
             # Unify these values?
-            self._vispy_node = vispy.scene.ArcballCamera(70)
+            self._vispy_node = _Arcball(70)
+            self._vispy_node.up = "+y"
 
         self._snx_zoom_to_fit(0.1)
 
@@ -56,7 +74,7 @@ class Camera(Node, CameraAdaptor):
 
     def _snx_zoom_to_fit(self, margin: float) -> None:
         # reset camera to fit all objects
-        self._vispy_node.set_range()
+        self._vispy_node.set_range(margin=margin)
         vis_tform = self._vispy_node.transform
 
         tform = Transform()

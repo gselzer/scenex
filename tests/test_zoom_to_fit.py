@@ -3,13 +3,12 @@ import numpy as np
 import scenex as snx
 
 
-def test_zoom_to_fit() -> None:
+def test_zoom_to_fit_image() -> None:
     view = snx.View(
         blending="default",
         scene=snx.Scene(
             children=[
                 snx.Image(
-                    name="bar",
                     data=np.random.randint(0, 255, (100, 100)).astype(np.uint8),
                 ),
             ],
