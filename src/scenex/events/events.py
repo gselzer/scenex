@@ -125,7 +125,6 @@ def _canvas_to_world(canvas: Canvas, canvas_pos: tuple[float, float]) -> Ray | N
     pos_diff = la.vec_transform(view.camera.transform.root[3, :3], camera_matrix.T)
     # Unproject the canvas NDC coordinates into world space.
     pos_world = la.vec_unproject(pos_ndc + pos_diff[:2], camera_matrix)
-    print(pos_world)
 
     # To find the direction of the ray, we find a unprojected point farther away
     # and subtract the closer point.
