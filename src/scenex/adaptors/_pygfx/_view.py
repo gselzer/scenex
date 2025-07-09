@@ -68,12 +68,8 @@ class View(ViewAdaptor):
         self._cam_adaptor.pygfx_controller.register_events(self._renderer)
 
     def _draw(self) -> None:
-        # FIXME: Ideally we wouldn't update this via polling
-        self._model.camera.projection = self._pygfx_cam.projection_matrix  # type: ignore
-
-        renderer = self._renderer
-        renderer.render(self._pygfx_scene, self._pygfx_cam, rect=self._rect)
-        renderer.request_draw()
+        self._renderer.render(self._pygfx_scene, self._pygfx_cam, rect=self._rect)
+        self._renderer.request_draw()
 
     def _snx_set_position(self, arg: tuple[float, float]) -> None:
         logger.warning("View.set_position not implemented for pygfx")

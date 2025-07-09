@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field, PrivateAttr
 
-from scenex.events.events import MouseButton, MouseEvent
+from scenex.events.events import MouseButton, MouseEvent, WheelEvent
 from scenex.model._transform import Transform
 
 from .node import Node
@@ -48,6 +48,15 @@ class _DefaultCameraFilter:
                 dy = self.drag_pos[1] - new_pos[1]
                 node.transform = node.transform.translated((dx, dy))
                 handled = True
+
+            elif isinstance(event, WheelEvent):
+                dx, dy = event.angle_delta
+                if dy:
+                    fy = 2 ** (dy * -0.001)  # Magnifier stolen from pygfx
+                    node.projection = node.projection.scaled((fy, fy, 1.0))
+                    print(node.projection)
+                    # TODO: Pan to compensate zoom
+                    handled = True
 
         return handled
 

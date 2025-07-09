@@ -51,6 +51,13 @@ class MouseEvent(Event):
     buttons: MouseButton
 
 
+@dataclass
+class WheelEvent(MouseEvent):
+    """A mouse interaction event describing wheel movement."""
+
+    angle_delta: tuple[float, float]
+
+
 def _handle_event(canvas: Canvas, event: Event) -> bool:
     handled = False
     if isinstance(event, MouseEvent):

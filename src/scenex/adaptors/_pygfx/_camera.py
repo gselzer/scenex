@@ -62,8 +62,7 @@ class Camera(Node, CameraAdaptor):
         self.pygfx_controller.add_default_event_handlers(viewport, self._pygfx_node)
 
     def _snx_set_projection(self, arg: Transform) -> None:
-        pass
-        # self._pygfx_node.projection_matrix = arg.root
+        self._pygfx_node.projection_matrix = arg.root  # pyright: ignore[reportAttributeAccessIssue]
 
     def _snx_zoom_to_fit(self, margin: float) -> None:
         # reset camera to fit all objects
