@@ -86,4 +86,6 @@ class Camera(Node, CameraAdaptor):
         cam.zoom = 1 - margin
         # FIXME: Pyright
         self._camera_model.transform = cam.local.matrix.T  # pyright: ignore[reportAttributeAccessIssue]
-        self._camera_model.projection = cam.projection_matrix  # pyright: ignore[reportAttributeAccessIssue]
+        # HACK: Ideally, we'd use `cam.projection_matrix`, but it's a cached
+        # property that doesn't get recomputed.
+        self._camera_model.projection = cam._update_projection_matrix()  # pyright: ignore[reportAttributeAccessIssue]
