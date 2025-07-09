@@ -52,7 +52,7 @@ class _DefaultCameraFilter:
             elif isinstance(event, WheelEvent):
                 dx, dy = event.angle_delta
                 if dy:
-                    zoom = 2 ** (dy * -0.001)  # Magnifier stolen from pygfx
+                    zoom = 2 ** (dy * 0.001)  # Magnifier stolen from pygfx
                     node.projection = node.projection.scaled((zoom, zoom, 1.0))
                     print(node.projection)
                     # TODO: Pan to compensate zoom
