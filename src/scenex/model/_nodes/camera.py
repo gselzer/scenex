@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 from pydantic import Field, PrivateAttr
 
 from scenex.events.events import MouseButton, MouseEvent, WheelEvent
@@ -50,11 +51,27 @@ class _DefaultCameraFilter:
                 handled = True
 
             elif isinstance(event, WheelEvent):
-                dx, dy = event.angle_delta
+                # Zoom while keeping the position under the cursor fixed.
+                _dx, dy = event.angle_delta
                 if dy:
+                    # Step 1: Adjust the projection matrix to zoom in or out.
                     zoom = 2 ** (dy * 0.001)  # Magnifier stolen from pygfx
                     node.projection = node.projection.scaled((zoom, zoom, 1.0))
-                    # TODO: Pan to compensate zoom
+
+                    # Step 2: Adjust the transform matrix to maintain the position
+                    # under the cursor. The math is largely borrowed from
+                    # https://github.com/pygfx/pygfx/blob/520af2d5bb2038ec309ef645e4a60d502f00d181/pygfx/controllers/_panzoom.py#L164
+
+                    # Find the distance between the world ray and the camera
+                    zoom_center = np.asarray(event.world_ray.origin)[:2]
+                    camera_center = np.asarray(node.transform.map((0, 0)))[:2]
+                    # Compute the world distance before the zoom
+                    delta_screen1 = zoom_center - camera_center
+                    # Compute the world distance after the zoom
+                    delta_screen2 = delta_screen1 * zoom
+                    # The pan is the difference between the two
+                    pan = (delta_screen2 - delta_screen1) / zoom
+                    node.transform = node.transform.translated(pan)
                     handled = True
 
         return handled
