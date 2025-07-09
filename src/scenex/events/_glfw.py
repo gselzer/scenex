@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import glfw
 
 from scenex.events._auto import App, EventFilter
-from scenex.events.events import MouseButton, MouseEvent, _canvas_to_world
+from scenex.events.events import MouseButton, MouseEvent, WheelEvent, _canvas_to_world
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,6 +35,7 @@ class GlfwEventFilter(EventFilter):
             self._window_id, self._cursor_enter_leave_callback
         )
         glfw.set_mouse_button_callback(self._window_id, self._mouse_button_callback)
+        glfw.set_scroll_callback(self._window_id, self._mouse_scroll_callback)
         self.pos = (0, 0)
 
     def _guess_id(self, canvas: Any) -> Any:
@@ -101,6 +102,26 @@ class GlfwEventFilter(EventFilter):
                         buttons=self._active_button,
                     )
                 )
+
+    def _mouse_scroll_callback(
+        self, window: Any, xoffset: float, yoffset: float
+    ) -> None:
+        pos = glfw.get_cursor_pos(window)
+        print(yoffset)
+        if not (ray := _canvas_to_world(self._canvas, pos)):
+            return
+
+        # Mouse wheel event
+        self._filter_func(
+            WheelEvent(
+                type="scroll",
+                canvas_pos=pos,
+                world_ray=ray,
+                buttons=self._active_button,
+                # Rendercanvas uses 100x and that works nice :)
+                angle_delta=(xoffset * 100, yoffset * 100),
+            )
+        )
 
 
 class GlfwAppWrap(App):
