@@ -107,7 +107,6 @@ class GlfwEventFilter(EventFilter):
         self, window: Any, xoffset: float, yoffset: float
     ) -> None:
         pos = glfw.get_cursor_pos(window)
-        print(yoffset)
         if not (ray := _canvas_to_world(self._canvas, pos)):
             return
 
