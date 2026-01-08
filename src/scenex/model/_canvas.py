@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
@@ -70,7 +71,9 @@ class Canvas(EventedBase):
         default="",
         description="The title displayed on the canvas window",
     )
-    views: EventedList[View] = Field(default_factory=EventedList, frozen=True)
+    views: EventedList[View] = Field(
+        default_factory=EventedList,
+    )
 
     # Private state for tracking mouse view transitions
     _last_mouse_view: View | None = PrivateAttr(default=None)
@@ -96,6 +99,10 @@ class Canvas(EventedBase):
         self.events.width.connect(self._compute_layout)
         self.events.height.connect(self._compute_layout)
 
+        self.views.item_inserted.connect(self._on_view_inserted)
+        self.views.item_removed.connect(self._on_view_removed)
+        self.views.item_changed.connect(self._on_view_changed)
+
         self._compute_layout()
 
     def close(self) -> None:
@@ -104,13 +111,36 @@ class Canvas(EventedBase):
             cast("CanvasAdaptor", adaptor)._snx_close()
 
     def _compute_layout(self) -> None:
-        total = len(self.views)
-        # TODO: Support more complex layouts
-        for i, view in enumerate(self.views):
-            view.layout.x = (i / total) * self.width
-            view.layout.y = 0
-            view.layout.width = self.width / total
-            view.layout.height = self.height
+        for view in self.views:
+            if view.layout.resizer is not None:
+                view.layout.resizer.resize(
+                    layout=view.layout,
+                    canvas_size=(self.width, self.height),
+                )
+        if not self.views:
+            return
+
+    def _on_view_inserted(self, idx: int, view: View) -> None:
+        view._canvas = self
+
+    def _on_view_removed(self, idx: int, view: View) -> None:
+        view._canvas = None
+
+    def _on_view_changed(
+        self,
+        idx: int | slice,
+        old_assignment: View | Sequence[View],
+        new_assignment: View | Sequence[View],
+    ) -> None:
+        if not isinstance(old_assignment, Sequence):
+            old_assignment = [old_assignment]
+        for view in old_assignment:
+            view._canvas = None
+
+        if not isinstance(new_assignment, Sequence):
+            new_assignment = [new_assignment]
+        for view in new_assignment:
+            view._canvas = self
 
     @property
     def size(self) -> tuple[int, int]:
