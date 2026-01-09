@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import abstractmethod
 
 from cmap import Color
 from pydantic import ConfigDict, Field, computed_field
@@ -8,6 +9,65 @@ from pydantic import ConfigDict, Field, computed_field
 from ._base import EventedBase
 
 logger = logging.getLogger(__name__)
+
+
+class Resizer(EventedBase):
+    @abstractmethod
+    def resize(
+        self,
+        layout: Layout,
+        canvas_size: tuple[float, float],
+    ) -> None:
+        """Resize the given layout based on the canvas size."""
+        ...
+
+
+class ProportionalResizer(Resizer):
+    start: int | tuple[int, int] = Field(default=0)
+    end: int | tuple[int, int] = Field(default=1)
+    total: int | tuple[int, int] = Field(default=1)
+
+    def resize(
+        self,
+        layout: Layout,
+        canvas_size: tuple[float, float],
+    ) -> None:
+        cw, ch = canvas_size
+        sw, sh = (
+            self.start if isinstance(self.start, tuple) else (self.start, self.start)
+        )
+        ew, eh = self.end if isinstance(self.end, tuple) else (self.end, self.end)
+        tw, th = (
+            self.total if isinstance(self.total, tuple) else (self.total, self.total)
+        )
+        layout.x = (sw / tw) * cw
+        layout.y = (sh / th) * ch
+        layout.width = ((ew - sw) / tw) * cw
+        layout.height = ((eh - sh) / th) * ch
+
+
+class AnchorResizer(Resizer):
+    """Anchor the layout to a fixed pixel position on the canvas.
+
+    Primarily useful for overlays that should stay in a corner.
+    """
+
+    anchor: tuple[float, float] = Field(default=(0, 0))
+
+    def resize(
+        self,
+        layout: Layout,
+        canvas_size: tuple[float, float],
+    ) -> None:
+        sw = self.anchor[0]
+        if sw < 0:
+            sw += canvas_size[0]
+        layout.x = sw
+
+        sh = self.anchor[1]
+        if sh < 0:
+            sh += canvas_size[1]
+        layout.y = sh
 
 
 class Layout(EventedBase):
@@ -82,6 +142,7 @@ class Layout(EventedBase):
     y: float = Field(
         default=0, description="The y-coordinate of the object (wrt parent)."
     )
+    resizer: Resizer | None = Field(default_factory=ProportionalResizer)
     width: float = Field(default=600, description="The width of the object.")
     height: float = Field(default=600, description="The height of the object.")
     background_color: Color | None = Field(

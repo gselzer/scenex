@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 import numpy as np
 import pylinalg as la
 from cmap import Color
-from pydantic import ConfigDict, Field, PrivateAttr, computed_field
+from pydantic import ConfigDict, Field, PrivateAttr
 from typing_extensions import Unpack
 
 from scenex.app.events import (
@@ -17,7 +17,7 @@ from scenex.app.events import (
     Ray,
     ResizeEvent,
 )
-from scenex.model._grid import Grid, GridAssignment
+from scenex.model._evented_list import EventedList
 
 from ._base import EventedBase
 from ._view import View  # noqa: TC001
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from scenex.adaptors._base import CanvasAdaptor
+    from scenex.model._grid import GridAssignment
 
     class CanvasKwargs(TypedDict, total=False):
         """TypedDict for Canvas kwargs."""
@@ -87,10 +88,8 @@ class Canvas(EventedBase):
         default="",
         description="The title displayed on the canvas window",
     )
-    grid: Grid = Field(
-        default_factory=Grid,
-        frozen=True,
-        description="The grid layout system for arranging views on the canvas",
+    views: EventedList[View] = Field(
+        default_factory=EventedList,
     )
 
     # Private state for tracking mouse view transitions
@@ -117,51 +116,21 @@ class Canvas(EventedBase):
         self.events.width.connect(self._compute_layout)
         self.events.height.connect(self._compute_layout)
 
-        self.grid.grid.item_changed.connect(self._compute_layout)
-        self.grid.grid.item_inserted.connect(self._compute_layout)
-        self.grid.grid.item_removed.connect(self._compute_layout)
-
-        self.grid.events.row_sizes.connect(self._compute_layout)
-        self.grid.events.col_sizes.connect(self._compute_layout)
-
-        self.grid.grid.item_changed.connect(self._on_view_changed)
-        self.grid.grid.item_inserted.connect(self._on_view_inserted)
-        self.grid.grid.item_removed.connect(self._on_view_removed)
+        self.views.item_inserted.connect(self._on_view_inserted)
+        self.views.item_removed.connect(self._on_view_removed)
+        self.views.item_changed.connect(self._on_view_changed)
 
         self._compute_layout()
 
-    @computed_field  # type: ignore
-    @property
-    def views(self) -> Sequence[View]:
-        return [assignment.view for assignment in self.grid.grid]
-
     def _compute_layout(self) -> None:
+        for view in self.views:
+            if view.layout.resizer is not None:
+                view.layout.resizer.resize(
+                    layout=view.layout,
+                    canvas_size=(self.width, self.height),
+                )
         if not self.views:
             return
-        grid = self.grid
-        max_r = max(assignment.row + assignment.rowspan for assignment in grid.grid)
-        max_c = max(assignment.col + assignment.colspan for assignment in grid.grid)
-        # FIXME: Vulnerable to rounding errors?
-        row_sizes = grid.row_sizes or [1] * max_r
-        col_sizes = grid.col_sizes or [1] * max_c
-
-        total_row_size = sum(row_sizes, 0)
-        total_col_size = sum(col_sizes, 0)
-        for assignment in grid.grid:
-            x = sum(col_sizes[: assignment.col], 0)
-            y = sum(row_sizes[: assignment.row], 0)
-            assignment.view.layout.x = x / total_col_size * self.width
-            assignment.view.layout.y = y / total_row_size * self.height
-            assignment.view.layout.width = (
-                sum(col_sizes[assignment.col : assignment.col + assignment.colspan], 0)
-                / total_col_size
-                * self.width
-            )
-            assignment.view.layout.height = (
-                sum(row_sizes[assignment.row : assignment.row + assignment.rowspan], 0)
-                / total_row_size
-                * self.height
-            )
 
     def _on_view_inserted(self, idx: int, assignment: GridAssignment) -> None:
         assignment.view._canvas = self
