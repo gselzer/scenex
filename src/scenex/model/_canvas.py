@@ -44,7 +44,9 @@ class Canvas(EventedBase):
 
     The Canvas represents the top-level rendering context where views are displayed.
     In desktop applications, a canvas corresponds to a window. In web applications,
-    it corresponds to a DOM element.
+    it corresponds to a DOM element. Multiple views can be arranged on a single canvas
+    using their layout parameters.
+
 
     Examples
     --------

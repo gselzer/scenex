@@ -10,13 +10,12 @@ Scene Graph Structure
 The scene graph follows this hierarchy::
 
     Canvas (rendering surface)
-    └── Grid (layout manager)
-        └── View (viewport)
-            ├── Scene (root node)
-            │   └── Node (visual elements)
-            │       ├── Image, Points, Line, Mesh, Volume, Text
-            │       └── Child nodes with transforms
-            └── Camera (viewing perspective)
+    └── View (viewport)
+        ├── Scene (root node)
+        │   └── Node (visual elements)
+        │       ├── Image, Points, Line, Mesh, Volume, Text
+        │       └── Child nodes with transforms
+        └── Camera (viewing perspective)
 
 Parent node properties (like transforms, visibility, and opacity) are composed with
 child properties during rendering rather than mutating the children themselves. This
@@ -29,7 +28,6 @@ Main Model Categories
     - Canvas: Top-level rendering surface (window or canvas element)
     - View: Rectangular viewport displaying a scene through a camera
     - Scene: Root container for visual elements
-    - Grid: Layout system for arranging multiple views on a single canvas
 
 **Visual Nodes**
     - Image: 2D images with colormapping and intensity normalization
