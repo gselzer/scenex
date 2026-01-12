@@ -12,7 +12,7 @@ import numpy as np
 import scenex as snx
 from scenex.app.events import Event, MouseMoveEvent
 from scenex.model import BlendMode
-from scenex.model._layout import AnchorResizer, ProportionalResizer
+from scenex.model._layout import AnchorResizer
 from scenex.model._transform import Transform
 from scenex.utils import projections
 
@@ -73,8 +73,6 @@ view3 = snx.View(
     camera=snx.Camera(interactive=False),
 )
 
-view1.layout.resizer = ProportionalResizer(start=(0, 0), end=(1, 1), total=(2, 1))
-view2.layout.resizer = ProportionalResizer(start=(1, 0), end=(2, 1), total=(2, 1))
 view3.layout.resizer = AnchorResizer(anchor=(-100, 0))
 view3.layout.width = 100
 view3.layout.height = 50

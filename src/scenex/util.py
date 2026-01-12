@@ -176,6 +176,7 @@ def show(
             height=int(view.layout.height),
             views=[view],
         )
+        canvas.views.append(view)
 
     canvas.visible = True
     reg = get_adaptor_registry(backend=backend)

@@ -44,8 +44,7 @@ class Canvas(EventedBase):
 
     The Canvas represents the top-level rendering context where views are displayed.
     In desktop applications, a canvas corresponds to a window. In web applications,
-    it corresponds to a DOM element. Multiple views can be laid out horizontally on a
-    single canvas; more complex layouts are planned in the near future.
+    it corresponds to a DOM element.
 
     Examples
     --------
@@ -115,32 +114,35 @@ class Canvas(EventedBase):
             if view.layout.resizer is not None:
                 view.layout.resizer.resize(
                     layout=view.layout,
-                    canvas_size=(self.width, self.height),
+                    canvas=self,
                 )
         if not self.views:
             return
 
     def _on_view_inserted(self, idx: int, view: View) -> None:
         view._canvas = self
+        self._compute_layout()
 
     def _on_view_removed(self, idx: int, view: View) -> None:
         view._canvas = None
+        self._compute_layout()
 
     def _on_view_changed(
         self,
         idx: int | slice,
-        old_assignment: View | Sequence[View],
-        new_assignment: View | Sequence[View],
+        old_views: View | Sequence[View],
+        new_views: View | Sequence[View],
     ) -> None:
-        if not isinstance(old_assignment, Sequence):
-            old_assignment = [old_assignment]
-        for view in old_assignment:
+        if not isinstance(old_views, Sequence):
+            old_views = [old_views]
+        for view in old_views:
             view._canvas = None
 
-        if not isinstance(new_assignment, Sequence):
-            new_assignment = [new_assignment]
-        for view in new_assignment:
+        if not isinstance(new_views, Sequence):
+            new_views = [new_views]
+        for view in new_views:
             view._canvas = self
+        self._compute_layout()
 
     @property
     def size(self) -> tuple[int, int]:

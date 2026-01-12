@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import logging
 from abc import abstractmethod
+from typing import TYPE_CHECKING
 
 from cmap import Color
 from pydantic import ConfigDict, Field
 
 from ._base import EventedBase
+
+if TYPE_CHECKING:
+    from scenex.model._canvas import Canvas
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +20,31 @@ class Resizer(EventedBase):
     def resize(
         self,
         layout: Layout,
-        canvas_size: tuple[float, float],
+        canvas: Canvas,
     ) -> None:
         """Resize the given layout based on the canvas size."""
         ...
+
+
+class DefaultResizer(Resizer):
+    """Default resizer that does nothing."""
+
+    def resize(
+        self,
+        layout: Layout,
+        canvas: Canvas,
+    ) -> None:
+        default_layouts = [
+            view.layout
+            for view in canvas.views
+            if isinstance(view.layout.resizer, DefaultResizer)
+        ]
+        idx = default_layouts.index(layout)
+        cw, ch = canvas.size
+        layout.x = idx * (cw / len(default_layouts))
+        layout.y = 0
+        layout.width = cw / len(default_layouts)
+        layout.height = ch
 
 
 class ProportionalResizer(Resizer):
@@ -30,9 +55,9 @@ class ProportionalResizer(Resizer):
     def resize(
         self,
         layout: Layout,
-        canvas_size: tuple[float, float],
+        canvas: Canvas,
     ) -> None:
-        cw, ch = canvas_size
+        cw, ch = canvas.size
         sw, sh = (
             self.start if isinstance(self.start, tuple) else (self.start, self.start)
         )
@@ -57,16 +82,16 @@ class AnchorResizer(Resizer):
     def resize(
         self,
         layout: Layout,
-        canvas_size: tuple[float, float],
+        canvas: Canvas,
     ) -> None:
         sw = self.anchor[0]
         if sw < 0:
-            sw += canvas_size[0]
+            sw += canvas.size[0]
         layout.x = sw
 
         sh = self.anchor[1]
         if sh < 0:
-            sh += canvas_size[1]
+            sh += canvas.size[1]
         layout.y = sh
 
 
@@ -127,7 +152,7 @@ class Layout(EventedBase):
     height: float = Field(
         default=600, description="The total height (including margin, border, padding)"
     )
-    resizer: Resizer | None = Field(default_factory=ProportionalResizer)
+    resizer: Resizer | None = Field(default_factory=DefaultResizer)
     background_color: Color | None = Field(
         default=Color("black"),
         description="The background color (inside of the border). "
