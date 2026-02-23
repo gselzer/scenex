@@ -113,8 +113,8 @@ class Canvas(EventedBase):
 
     def _compute_layout(self) -> None:
         for view in self.views:
-            if view.layout.resizer is not None:
-                view.layout.resizer.resize(
+            if view.layout.strategy is not None:
+                view.layout.strategy.apply(
                     layout=view.layout,
                     canvas=self,
                 )

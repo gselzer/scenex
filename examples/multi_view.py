@@ -12,7 +12,6 @@ import numpy as np
 import scenex as snx
 from scenex.app.events import Event, MouseMoveEvent
 from scenex.model import BlendMode
-from scenex.model._layout import AnchorResizer
 from scenex.model._transform import Transform
 from scenex.utils import projections
 
@@ -73,7 +72,7 @@ view3 = snx.View(
     camera=snx.Camera(interactive=False),
 )
 
-view3.layout.resizer = AnchorResizer(anchor=(-100, 0))
+view3.layout.strategy = snx.AnchorLayoutStrategy(anchor=(-100, 0))
 view3.layout.width = 100
 view3.layout.height = 50
 

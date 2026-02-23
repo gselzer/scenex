@@ -15,21 +15,28 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class Resizer(EventedBase):
+class LayoutStrategy(EventedBase):
+    """Base class defining how a view's layout is computed relative to its canvas.
+
+    A LayoutStrategy determines the position and size of a view when the canvas
+    is resized or when views are added/removed. Strategies are attached to Layout
+    instances via the `strategy` field.
+    """
+
     @abstractmethod
-    def resize(
+    def apply(
         self,
         layout: Layout,
         canvas: Canvas,
     ) -> None:
-        """Resize the given layout based on the canvas size."""
+        """Compute the layout position and size based on the canvas."""
         ...
 
 
-class DefaultResizer(Resizer):
-    """Default resizer that does nothing."""
+class DefaultLayoutStrategy(LayoutStrategy):
+    """Default strategy that divides canvas width equally among views using it."""
 
-    def resize(
+    def apply(
         self,
         layout: Layout,
         canvas: Canvas,
@@ -37,7 +44,7 @@ class DefaultResizer(Resizer):
         default_layouts = [
             view.layout
             for view in canvas.views
-            if isinstance(view.layout.resizer, DefaultResizer)
+            if isinstance(view.layout.strategy, DefaultLayoutStrategy)
         ]
         idx = default_layouts.index(layout)
         cw, ch = canvas.size
@@ -47,12 +54,14 @@ class DefaultResizer(Resizer):
         layout.height = ch
 
 
-class ProportionalResizer(Resizer):
+class ProportionalLayoutStrategy(LayoutStrategy):
+    """Strategy that positions a view proportionally within the canvas."""
+
     start: int | tuple[int, int] = Field(default=0)
     end: int | tuple[int, int] = Field(default=1)
     total: int | tuple[int, int] = Field(default=1)
 
-    def resize(
+    def apply(
         self,
         layout: Layout,
         canvas: Canvas,
@@ -71,15 +80,16 @@ class ProportionalResizer(Resizer):
         layout.height = ((eh - sh) / th) * ch
 
 
-class AnchorResizer(Resizer):
-    """Anchor the layout to a fixed pixel position on the canvas.
+class AnchorLayoutStrategy(LayoutStrategy):
+    """Strategy that anchors the layout to a fixed pixel position on the canvas.
 
-    Primarily useful for overlays that should stay in a corner.
+    Primarily useful for overlays that should stay in a corner. Negative anchor
+    values are interpreted as offsets from the canvas edge.
     """
 
     anchor: tuple[float, float] = Field(default=(0, 0))
 
-    def resize(
+    def apply(
         self,
         layout: Layout,
         canvas: Canvas,
@@ -152,7 +162,7 @@ class Layout(EventedBase):
     height: float = Field(
         default=600, description="The total height (including margin, border, padding)"
     )
-    resizer: Resizer | None = Field(default_factory=DefaultResizer)
+    strategy: LayoutStrategy | None = Field(default_factory=DefaultLayoutStrategy)
     background_color: Color | None = Field(
         default=Color("black"),
         description="The background color (inside of the border). "

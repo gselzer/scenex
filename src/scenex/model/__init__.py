@@ -90,7 +90,13 @@ from ._color import (
     UniformColor,
     VertexColors,
 )
-from ._layout import Layout
+from ._layout import (
+    AnchorLayoutStrategy,
+    DefaultLayoutStrategy,
+    Layout,
+    LayoutStrategy,
+    ProportionalLayoutStrategy,
+)
 from ._nodes.camera import (
     AnyController,
     Camera,
@@ -110,6 +116,7 @@ from ._transform import Transform
 from ._view import AnyResizePolicy, Letterbox, ResizePolicy, View
 
 __all__ = [
+    "AnchorLayoutStrategy",
     "AnyController",
     "AnyNode",
     "AnyResizePolicy",
@@ -120,11 +127,13 @@ __all__ = [
     "Color",
     "ColorModel",
     "Colormap",
+    "DefaultLayoutStrategy",
     "EventedBase",
     "FaceColors",
     "Image",
     "InterpolationMode",
     "Layout",
+    "LayoutStrategy",
     "Letterbox",
     "Line",
     "Mesh",
@@ -132,6 +141,7 @@ __all__ = [
     "Orbit",
     "PanZoom",
     "Points",
+    "ProportionalLayoutStrategy",
     "RenderMode",
     "ResizePolicy",
     "ScalingMode",
