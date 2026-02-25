@@ -30,7 +30,7 @@ pressed_color_model = snx.VertexColors(
         for i in range(len(original_vertices))
     ],
 )
-line = snx.Line(vertices=original_vertices, color=line_color_model)
+line = snx.Line(vertices=original_vertices, color=line_color_model, width=5)
 
 view = snx.View(
     scene=snx.Scene(children=[line]),
@@ -60,7 +60,7 @@ def _view_event_filter(event: Event) -> bool:
     elif isinstance(event, MousePressEvent):
         if event.buttons & MouseButton.LEFT:
             if intersections := event.world_ray.intersections(view.scene):
-                # Find mesh intersection
+                # Find line intersection
                 for node, _distance in intersections:
                     if isinstance(node, snx.Line):
                         pressed = True

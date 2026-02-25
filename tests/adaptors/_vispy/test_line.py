@@ -3,6 +3,7 @@ from __future__ import annotations
 import cmap
 import numpy as np
 import pytest
+import vispy.scene
 
 import scenex as snx
 import scenex.adaptors._vispy as adaptors
@@ -23,6 +24,7 @@ def line() -> snx.Line:
         vertices=vertices,
         color=snx.UniformColor(color=cmap.Color("red")),
         width=1,
+        antialias=False,
     )
 
 
@@ -33,6 +35,7 @@ def adaptor(line: snx.Line) -> adaptors.Line:
     return adaptor
 
 
+# TODO: Break this up into separate tests
 def test_data(line: snx.Line, adaptor: adaptors.Line) -> None:
     """Tests that changing the model changes the view (the Vispy node)."""
     assert np.array_equal(line.vertices, np.asarray(adaptor._vispy_node.pos))
@@ -56,3 +59,15 @@ def test_data(line: snx.Line, adaptor: adaptors.Line) -> None:
         ],
     )
     assert np.array_equal([c.hex for c in line.color.color], adaptor._vispy_node.color)  # pyright: ignore
+
+
+def test_line_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
+    """Tests that changing the model antialias changes the view (the Vispy node)."""
+    node = adaptor._vispy_node
+    assert isinstance(node, vispy.scene.Line)
+    # Initial state
+    assert not line.antialias
+    assert node.antialias == (1.0 if line.antialias else 0.0)
+    # Change antialias
+    line.antialias = True
+    assert node.antialias == (1.0 if line.antialias else 0.0)

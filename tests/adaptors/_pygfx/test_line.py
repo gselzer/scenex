@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cmap
 import numpy as np
+import pygfx
 import pytest
 
 import scenex as snx
@@ -23,6 +24,7 @@ def line() -> snx.Line:
         vertices=vertices,
         color=snx.UniformColor(color=cmap.Color("red")),
         width=1,
+        antialias=False,
     )
 
 
@@ -33,6 +35,7 @@ def adaptor(line: snx.Line) -> adaptors.Line:
     return adaptor
 
 
+# TODO: Break this up into separate tests
 def test_data(line: snx.Line, adaptor: adaptors.Line) -> None:
     """Tests that changing the model changes the view (the PyGfx node)."""
     geom = adaptor._pygfx_node.geometry
@@ -67,3 +70,16 @@ def test_data(line: snx.Line, adaptor: adaptors.Line) -> None:
         np.asarray([c.rgba for c in line.color.color], dtype=np.float32),
         adaptor._pygfx_node.geometry.colors.data,  # pyright: ignore
     )
+
+
+def test_points_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
+    node = adaptor._pygfx_node
+    mat = node.material
+    assert isinstance(mat, pygfx.LineMaterial)
+
+    # Initial state
+    assert not line.antialias
+    assert mat.aa == line.antialias
+    # Change antialias
+    line.antialias = True
+    assert mat.aa

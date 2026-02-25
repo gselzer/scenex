@@ -28,6 +28,8 @@ class Text(Node, TextAdaptor):
             color=text.color.hex,
             # This value has model render order win for coplanar objects
             depth_compare="<=",
+            # TODO: Maybe this should be a parameter
+            aa=True,
         )
         # create a pygfx Text visual
         self._pygfx_node = pygfx.Text(
