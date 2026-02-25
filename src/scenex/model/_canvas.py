@@ -167,6 +167,8 @@ class Canvas(EventedBase):
         handled = False
         if isinstance(event, MouseEvent):
             current_view = self._containing_view(event.canvas_pos)
+            if current_view is not None:
+                print(current_view.scene.name if current_view.scene else "no scene")
 
             # Check if we've moved between views and handle transitions
             # BEGIN UNTESTED CODE!
