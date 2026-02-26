@@ -26,6 +26,7 @@ class Line(Node, LineAdaptor):
         self._model = line
         self._material = pygfx.LineMaterial(
             thickness=line.width,
+            aa=line.antialias,
             # This value has model render order win for coplanar objects
             depth_compare="<=",
         )
