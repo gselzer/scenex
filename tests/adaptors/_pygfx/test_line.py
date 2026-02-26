@@ -35,44 +35,52 @@ def adaptor(line: snx.Line) -> adaptors.Line:
     return adaptor
 
 
-# TODO: Break this up into separate tests
-def test_data(line: snx.Line, adaptor: adaptors.Line) -> None:
-    """Tests that changing the model changes the view (the PyGfx node)."""
+def test_line_data(line: snx.Line, adaptor: adaptors.Line) -> None:
+    """Tests that changing the model vertices updates the PyGfx node."""
     geom = adaptor._pygfx_node.geometry
-    mat = adaptor._pygfx_node.material
     assert geom is not None
-    assert mat is not None
 
     assert np.array_equal(line.vertices, geom.positions.data)
     line.vertices = line.vertices * 100
     assert np.array_equal(line.vertices, geom.positions.data)
 
-    assert line.width == mat.thickness  # pyright: ignore
-    line.width = 5
-    assert line.width == mat.thickness  # pyright: ignore
 
-    assert line.color is not None
+def test_line_width(line: snx.Line, adaptor: adaptors.Line) -> None:
+    mat = adaptor._pygfx_node.material
+    assert isinstance(mat, pygfx.LineMaterial)
+
+    assert line.width == mat.thickness
+    line.width = 5
+    assert mat.thickness == 5
+
+
+def test_line_color(line: snx.Line, adaptor: adaptors.Line) -> None:
+    mat = adaptor._pygfx_node.material
+    assert isinstance(mat, pygfx.LineMaterial)
+    geom = adaptor._pygfx_node.geometry
+
+    # initial uniform color
     assert np.array_equal(line.color.color.rgba, mat.color.rgba)  # type: ignore
+
+    # change uniform color
     line.color = snx.UniformColor(color=cmap.Color("blue"))
-    assert np.array_equal(
-        line.color.color.rgba,
-        adaptor._pygfx_node.material.color.rgba,  # pyright: ignore
-    )
-    line.color = snx.VertexColors(
-        color=[
-            cmap.Color("green"),
-            cmap.Color("yellow"),
-            cmap.Color("blue"),
-            cmap.Color("red"),
-        ],
-    )
+    assert np.array_equal(line.color.color.rgba, mat.color.rgba)
+
+    # change to vertex colors
+    colors = [
+        cmap.Color("green"),
+        cmap.Color("yellow"),
+        cmap.Color("blue"),
+        cmap.Color("red"),
+    ]
+    line.color = snx.VertexColors(color=colors)
     assert np.array_equal(
         np.asarray([c.rgba for c in line.color.color], dtype=np.float32),
-        adaptor._pygfx_node.geometry.colors.data,  # pyright: ignore
+        geom.colors.data,  # pyright: ignore
     )
 
 
-def test_points_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
+def test_line_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
     node = adaptor._pygfx_node
     mat = node.material
     assert isinstance(mat, pygfx.LineMaterial)
