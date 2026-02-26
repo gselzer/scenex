@@ -30,7 +30,7 @@ pressed_color_model = snx.VertexColors(
         for i in range(len(original_vertices))
     ],
 )
-line = snx.Line(vertices=original_vertices, color=line_color_model, width=5)
+line = snx.Line(vertices=original_vertices, color=line_color_model)
 
 view = snx.View(
     scene=snx.Scene(children=[line]),
