@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import cmap
 import numpy as np
+import pygfx
 import pytest
 
 import scenex as snx
 import scenex.adaptors._pygfx as adaptors
 from scenex.adaptors import get_adaptor_registry
 from scenex.model._transform import Transform
+
+_TEXTURE_PATH = "scenex.adaptors._pygfx._image.pygfx.Texture"
 
 
 @pytest.fixture
@@ -94,6 +99,88 @@ def test_rgb(image: snx.Image, adaptor: adaptors.Image) -> None:
         cmap.Colormap("blue").to_pygfx().texture.data,
         adaptor._pygfx_node.material.map.texture.data,  # type: ignore
     )
+
+
+def test_oversized_texture() -> None:
+    """Demonstrates that textures exceeding GPU dimension limits are downsampled.
+
+    When image data exceeds the GPU's max texture dimension, pygfx will raise a
+    GLError at render time (err=1281, invalid value). The adaptor should detect
+    oversized data and transparently downsample it (e.g. via a strided view) before
+    uploading, rather than failing at render time.
+    """
+    import wgpu
+
+    # Determine the GPU's max texture dimension
+    adapter = wgpu.gpu.request_adapter_sync(power_preference="high-performance")
+    device = adapter.request_device_sync()
+    max_dim = device.limits["max-texture-dimension-2d"]
+
+    # Create an image that exceeds the GPU limits
+    oversized_shape = (1, max_dim + 1)
+    image = snx.Image(
+        data=np.zeros(oversized_shape, dtype=np.uint8), cmap=cmap.Colormap("viridis")
+    )
+    # Create an adaptor for it
+    adaptor = image._get_adaptors(create=True)[0]
+    assert isinstance(adaptor, adaptors.Image)
+    # And check the texture was downsampled to fit within the GPU limits
+    assert adaptor._texture.data.shape == (  # pyright: ignore
+        oversized_shape[0],
+        (oversized_shape[1] + 1) // 2,
+    )
+
+
+def test_texture_reuse(image: snx.Image, adaptor: adaptors.Image) -> None:
+    """Updating data with the same shape and dtype reuses the existing texture."""
+    new_data = np.full((100, 100), 42, dtype=np.uint8)
+    with patch(_TEXTURE_PATH, wraps=pygfx.Texture) as mock_texture:
+        image.data = new_data
+    assert mock_texture.call_count == 0
+    np.testing.assert_array_equal(adaptor._texture.data, new_data)  # pyright: ignore
+
+
+def test_texture_recreated_on_shape_change(
+    image: snx.Image, adaptor: adaptors.Image
+) -> None:
+    """Updating data with a different shape creates a new texture."""
+    existing_shape = adaptor._texture.data.shape  # pyright: ignore
+    new_shape = (existing_shape[0] + 10, existing_shape[1] + 10)
+    with patch(_TEXTURE_PATH, wraps=pygfx.Texture) as mock_texture:
+        image.data = np.zeros(new_shape, dtype=np.uint8)
+    assert mock_texture.call_count == 1
+
+
+def test_texture_recreated_on_dtype_change(
+    image: snx.Image, adaptor: adaptors.Image
+) -> None:
+    """Updating data with a different dtype creates a new texture."""
+    assert adaptor._texture.data.dtype != np.float32  # pyright: ignore
+    with patch(_TEXTURE_PATH, wraps=pygfx.Texture) as mock_texture:
+        image.data = np.zeros((100, 100), dtype=np.float32)
+    assert mock_texture.call_count == 1
+
+
+def test_texture_recreated_on_ndim_change(
+    image: snx.Image, adaptor: adaptors.Image
+) -> None:
+    """Switching between grayscale and RGB creates a new texture."""
+    with patch(_TEXTURE_PATH, wraps=pygfx.Texture) as mock_texture:
+        image.data = np.zeros((100, 100, 3), dtype=np.uint8)
+    assert mock_texture.call_count == 1
+
+
+def test_texture_buffer_not_source_array(
+    image: snx.Image, adaptor: adaptors.Image
+) -> None:
+    """Reusing pygfx Textures opens the door to mutation - test it doesn't happen."""
+    old_data_actual = image.data
+    assert isinstance(old_data_actual, np.ndarray)
+    old_data_expected = old_data_actual.copy()
+    # Overwrite via same-shape update — triggers the in-place reuse path
+    image.data = old_data_actual + 1
+    # The first array must be unaffected
+    assert np.array_equal(old_data_actual, old_data_expected)
 
 
 @pytest.mark.parametrize(
