@@ -55,6 +55,16 @@ class Adaptor(ABC, Generic[TModel, TNative]):
             name = self.SETTER_METHOD.format(name=signal_name)
             setter = getattr(self, name)
         except AttributeError as e:
+            # if len(info.path) > 1:
+            #     # Event originated from a nested child model; this adaptor is not
+            #     # expected to handle all of its fields.
+            #     logger.debug(
+            #         "No handler for nested field %r on %r (path=%r)",
+            #         signal_name,
+            #         type(self).__name__,
+            #         info.path,
+            #     )
+            # else:
             logger.exception(e)
             return
 
