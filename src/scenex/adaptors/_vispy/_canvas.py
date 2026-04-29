@@ -51,7 +51,24 @@ class Canvas(CanvasAdaptor):
         return self._canvas.native
 
     def _snx_set_visible(self, arg: bool) -> None:
-        app().show(self._snx_get_native(), arg)
+        # NOTE: It is a common pattern to show a canvas before running the app, e.g.:
+        #   canvas = Canvas(visible=True)
+        #   snx.run()
+        # This will (1) implicitly create a top-level window for the canvas, (2) make
+        # it visible, and (3) run the event loop. In this case, (1) and (2) spin up an
+        # OpenGLContext.
+        #
+        # If our use case requires embedding that canvas within another widget, (e.g.
+        # using scenex in an app), then it turns out that the GL context created in (1)
+        # becomes invalid on reparenting, and dangling references to that context seem
+        # to cause segfaults on the first repaint.
+        #
+        # To avoid this, we defer the show() call until the first event loop iteration,
+        # giving the caller a chance to embed the native widget before it is shown as a
+        # top-level window, avoiding that GL context from ever being created in the
+        # first place. It is possible that some fixes within vispy could make this
+        # workaround unnecessary in the future, but for now it does the trick.
+        app().call_later(0, lambda: app().show(self._snx_get_native(), arg))
 
     def _draw(self) -> None:
         self._canvas.update()
