@@ -91,3 +91,24 @@ def test_line_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
     # Change antialias
     line.antialias = True
     assert mat.aa
+
+
+def test_line_scaling(line: snx.Line, adaptor: adaptors.Line) -> None:
+    mat = adaptor._pygfx_node.material
+    assert isinstance(mat, pygfx.LineMaterial)
+
+    # Default scaling is "fixed" → thickness_space should be "screen"
+    assert line.scaling == "fixed"
+    assert mat.thickness_space == "screen"
+
+    # Change to "scene" → thickness_space should be "world"
+    line.scaling = "scene"
+    assert mat.thickness_space == "world"
+
+    # Change to "visual" → thickness_space should be "model"
+    line.scaling = "visual"
+    assert mat.thickness_space == "model"
+
+    # Change back to "fixed" → thickness_space should be "screen"
+    line.scaling = "fixed"
+    assert mat.thickness_space == "screen"

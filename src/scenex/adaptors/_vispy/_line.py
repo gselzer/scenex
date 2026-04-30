@@ -48,3 +48,10 @@ class Line(Node, LineAdaptor):
 
     def _snx_set_antialias(self, arg: bool) -> None:
         self._vispy_node.antialias = arg
+
+    def _snx_set_scaling(self, arg: model.ScalingMode) -> None:
+        if arg != "fixed":
+            raise NotImplementedError(
+                f"Vispy does not support '{arg}' scaling mode for lines. "
+                "Only 'fixed' (screen-pixel width) is supported."
+            )

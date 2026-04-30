@@ -103,8 +103,8 @@ from ._nodes.camera import (
 from ._nodes.image import Image, InterpolationMode
 from ._nodes.line import Line
 from ._nodes.mesh import Mesh
-from ._nodes.node import AnyNode, BlendMode, Node
-from ._nodes.points import Points, ScalingMode, SymbolName
+from ._nodes.node import AnyNode, BlendMode, Node, ScalingMode
+from ._nodes.points import Points, SymbolName
 from ._nodes.scene import Scene
 from ._nodes.text import Text
 from ._nodes.volume import RenderMode, Volume

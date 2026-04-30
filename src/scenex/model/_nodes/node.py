@@ -3,7 +3,16 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from enum import Enum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypeAlias, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Literal,
+    TypeAlias,
+    Union,
+    cast,
+)
 
 import numpy as np
 from psygnal import Signal
@@ -63,6 +72,14 @@ AnyNode = Annotated[
 
 # Axis-Aligned Bounding Box
 AABB: TypeAlias = tuple[tuple[float, float, float], tuple[float, float, float]]
+
+ScalingMode: TypeAlias = Literal["fixed", "scene", "visual"]
+"""Controls how size-like properties (e.g. line width, point size) scale with the view.
+
+- ``"fixed"``: constant screen-pixel size regardless of zoom.
+- ``"scene"``: constant world-space size; scales with zoom.
+- ``"visual"``: like ``"fixed"`` but also scales with the node's own transform.
+"""
 
 
 class BlendMode(Enum):

@@ -9,7 +9,7 @@ from pydantic import Field
 
 from scenex.model._color import UniformColor, VertexColors
 
-from .node import AABB, Node
+from .node import AABB, Node, ScalingMode
 
 if TYPE_CHECKING:
     from scenex.app.events import Ray
@@ -32,7 +32,6 @@ SymbolName = Literal[
     "star",
     "cross_lines",
 ]
-ScalingMode = Literal["fixed", "scene", "visual"]
 
 
 class Points(Node):

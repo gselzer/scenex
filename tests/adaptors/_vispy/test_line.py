@@ -81,3 +81,22 @@ def test_line_antialias(line: snx.Line, adaptor: adaptors.Line) -> None:
     # Change antialias
     line.antialias = True
     assert node.antialias == line.antialias
+
+
+def test_line_scaling(line: snx.Line, adaptor: adaptors.Line) -> None:
+    """Tests scaling setter: 'fixed' is a no-op; other modes raise NotImplementedError.
+
+    The exception is tested by calling _snx_set_scaling directly because the adaptor's
+    handle_event catches and logs exceptions rather than re-raising them.
+    """
+    assert line.scaling == "fixed"
+
+    # "fixed" is supported (no-op)
+    adaptor._snx_set_scaling("fixed")
+
+    # vispy only supports "fixed"; other modes raise NotImplementedError directly
+    with pytest.raises(NotImplementedError):
+        adaptor._snx_set_scaling("scene")
+
+    with pytest.raises(NotImplementedError):
+        adaptor._snx_set_scaling("visual")

@@ -8,7 +8,7 @@ from pydantic import Field
 
 from scenex.model._color import UniformColor, VertexColors
 
-from .node import AABB, Node
+from .node import AABB, Node, ScalingMode
 
 if TYPE_CHECKING:
     from scenex.app.events._events import Ray
@@ -64,10 +64,18 @@ class Line(Node):
         default_factory=lambda: UniformColor(color=Color("white")),
         description="Color specification; uniform or per-vertex colors",
     )
-    # TODO: Support scaling modes like points do
-    width: float = Field(default=1.0, ge=0.0, description="Width of the line in pixels")
+    width: float = Field(default=1.0, ge=0.0, description="Width of the line")
     antialias: bool = Field(
         default=True, description="Whether to apply anti-aliasing to line rendering"
+    )
+    scaling: ScalingMode = Field(
+        default="fixed",
+        description=(
+            "Scaling mode: "
+            "'fixed' keeps line width constant in screen pixels, "
+            "'scene' keeps line width constant in world units, "
+            "'visual' is like 'fixed' but also scales with this node's transform."
+        ),
     )
 
     @property  # TODO: Cache?
@@ -85,8 +93,7 @@ class Line(Node):
         return (min_vals, max_vals)  # type: ignore
 
     def passes_through(self, ray: Ray) -> float | None:
-        """
-        Check if the ray passes through this line.
+        """Check if the ray passes through this line.
 
         Parameters
         ----------
@@ -96,8 +103,21 @@ class Line(Node):
         Returns
         -------
         float | None
-            The distance to the closest intersection, or None if no intersection.
+            The parameter t of the closest intersection (i.e. the point
+            ``ray.origin + t * ray.direction``), or None if no intersection.
         """
+        if self.scaling == "fixed":
+            return self._passes_through_screen(ray)
+        elif self.scaling == "scene":
+            return self._passes_through_world(ray)
+        else:  # "visual"
+            raise NotImplementedError(
+                "Lines with 'visual' scaling mode do not (yet) support "
+                "ray intersection tests."
+            )
+
+    def _passes_through_screen(self, ray: Ray) -> float | None:
+        """Test ray intersection in screen/canvas space for fixed-size lines."""
         verts = np.asarray(self.vertices)
         # Convert vertices to canvas space
         canvas_vertices = self._node_to_canvas(ray.source)
@@ -156,6 +176,72 @@ class Line(Node):
             return float(np.min(valid_intersections))
         else:
             return None
+
+    def _passes_through_world(self, ray: Ray) -> float | None:
+        """Test ray intersection in world space for scene-scaled lines.
+
+        Treats each segment as a capsule of radius ``width / 2`` in world units
+        and returns the ray parameter t of the closest hit.
+        """
+        if self.vertices is None or len(self.vertices) < 2:
+            return None
+
+        verts = np.asarray(self.vertices, dtype=float)
+        if verts.shape[1] == 2:
+            verts = np.pad(verts, ((0, 0), (0, 1)), mode="constant", constant_values=0)
+
+        tform = self.transform_to_node(ray.source.scene)
+        world_verts = tform.map(verts)[:, :3]
+
+        starts = world_verts[:-1]  # (M, 3)
+        ends = world_verts[1:]  # (M, 3)
+
+        O = np.asarray(ray.origin, dtype=float)
+        D = np.asarray(ray.direction, dtype=float)
+
+        E = ends - starts  # (M, 3) segment direction vectors
+        a = O[np.newaxis, :] - starts  # (M, 3) ray-origin relative to seg starts
+
+        dd = float(np.dot(D, D))
+        if dd == 0:
+            return None  # Degenerate ray
+
+        de = E @ D  # (M,) D · E
+        da = a @ D  # (M,) D · a
+        ee = np.sum(E * E, axis=1)  # (M,) |E|²
+        ea = np.sum(E * a, axis=1)  # (M,) E · a
+
+        # determinant; zero when ray and segment are parallel
+        det = dd * ee - de**2  # (M,)
+        nonparallel = det > 1e-10
+        safe_det = np.where(nonparallel, det, 1.0)
+        safe_ee = np.where(ee > 0, ee, 1.0)
+
+        # Unclamped closest-point parameters
+        t_seg = np.where(nonparallel, (dd * ea - de * da) / safe_det, ea / safe_ee)
+        t_seg = np.clip(t_seg, 0.0, 1.0)
+
+        # Ray parameter for the (clamped) segment point
+        t_ray = (t_seg * de - da) / dd
+
+        # When t_ray < 0 the closest approach is behind the ray origin; clamp
+        # and reproject t_seg onto the segment closest to the ray origin.
+        at_origin = t_ray < 0
+        t_ray = np.maximum(t_ray, 0.0)
+        t_seg_reproject = np.clip(ea / safe_ee, 0.0, 1.0)
+        t_seg = np.where(at_origin, t_seg_reproject, t_seg)
+
+        # Closest points on ray and segment
+        ray_pts = O[np.newaxis, :] + t_ray[:, np.newaxis] * D[np.newaxis, :]  # (M, 3)
+        seg_pts = starts + t_seg[:, np.newaxis] * E  # (M, 3)
+
+        distances = np.linalg.norm(ray_pts - seg_pts, axis=1)  # (M,)
+
+        r = self.width / 2
+        valid_t_rays = t_ray[distances <= r]
+        if len(valid_t_rays) == 0:
+            return None
+        return float(np.min(valid_t_rays))
 
     @staticmethod
     def _world_to_canvas(ray: Ray, points: np.ndarray) -> np.ndarray:

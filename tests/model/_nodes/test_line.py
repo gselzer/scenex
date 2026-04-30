@@ -1,8 +1,10 @@
 """Basic test to verify Line node implementation."""
 
 import numpy as np
+import pytest
 
 import scenex as snx
+from scenex.app.events._events import Ray
 from scenex.utils import projections
 
 
@@ -120,3 +122,35 @@ def test_line_ray_intersection_transformed() -> None:
     assert ray is not None
     distance = line.passes_through(ray)
     assert distance is None
+
+
+def test_line_scene_scaling_ray_intersection() -> None:
+    """Test world-space ray-line intersection for scene scaling (width in world units)."""
+    # Horizontal line along x-axis; width=2 → capsule radius = 1.0 world unit
+    vertices = np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]])
+    line = snx.Line(vertices=vertices, width=2.0, scaling="scene")
+    view = snx.View(scene=snx.Scene(children=[line]))
+
+    # Ray from z=5 aimed straight down (-Z), passing through (5, 0, 0).
+    # t_ray = 5: O=(5,0,5), D=(0,0,-1), closest segment point at z=0 → t=5.
+    ray = Ray(origin=(5.0, 0.0, 5.0), direction=(0.0, 0.0, -1.0), source=view)
+    distance = line.passes_through(ray)
+    assert distance is not None and np.isclose(distance, 5.0)
+
+    # y-offset 0.5 < radius 1.0 → hit
+    ray = Ray(origin=(5.0, 0.5, 5.0), direction=(0.0, 0.0, -1.0), source=view)
+    assert line.passes_through(ray) is not None
+
+    # y-offset 1.5 > radius 1.0 → miss
+    ray = Ray(origin=(5.0, 1.5, 5.0), direction=(0.0, 0.0, -1.0), source=view)
+    assert line.passes_through(ray) is None
+
+
+def test_line_visual_scaling_not_implemented() -> None:
+    """Test that 'visual' scaling raises NotImplementedError for ray intersection."""
+    vertices = np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]])
+    line = snx.Line(vertices=vertices, scaling="visual")
+    view = snx.View(scene=snx.Scene(children=[line]))
+    ray = Ray(origin=(5.0, 0.0, 5.0), direction=(0.0, 0.0, -1.0), source=view)
+    with pytest.raises(NotImplementedError):
+        line.passes_through(ray)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pygfx
@@ -11,9 +11,17 @@ from scenex.model._color import ColorModel, UniformColor, VertexColors
 from ._node import Node
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from numpy.typing import ArrayLike
 
     from scenex import model
+
+SPACE_MAP: Mapping[model.ScalingMode, Literal["model", "screen", "world"]] = {
+    "fixed": "screen",
+    "scene": "world",
+    "visual": "model",
+}
 
 
 class Line(Node, LineAdaptor):
@@ -26,6 +34,7 @@ class Line(Node, LineAdaptor):
         self._model = line
         self._material = pygfx.LineMaterial(
             thickness=line.width,
+            thickness_space=SPACE_MAP[line.scaling],
             aa=line.antialias,
             # This value has model render order win for coplanar objects
             depth_compare="<=",
@@ -69,3 +78,6 @@ class Line(Node, LineAdaptor):
 
     def _snx_set_antialias(self, arg: bool) -> None:
         self._material.aa = arg
+
+    def _snx_set_scaling(self, arg: model.ScalingMode) -> None:
+        self._material.thickness_space = SPACE_MAP[arg]
