@@ -983,6 +983,7 @@
 <p>An example demonstrating different blend modes.</p>
 <p>Unaltered, each channel of the volume is blended additively, resulting in transparency.</p>
 <p>By clicking on the green volume, the blend mode will cycle through the available modes.</p>
+<p><img alt="Screenshot of Blending" src="../images/blending.png" /></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><span class="kn">import</span><span class="w"> </span><span class="nn">cmap</span>
 </span><span id="__span-0-2"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-0-3">
@@ -1055,25 +1056,23 @@
 </span><span id="__span-0-70">
 </span><span id="__span-0-71"><span class="n">view</span><span class="o">.</span><span class="n">set_event_filter</span><span class="p">(</span><span class="n">change_blend_mode</span><span class="p">)</span>
 </span><span id="__span-0-72">
-</span><span id="__span-0-73">
-</span><span id="__span-0-74"><span class="n">snx</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;vispy&quot;</span><span class="p">)</span>
-</span><span id="__span-0-75"><span class="n">snx</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
-</span><span id="__span-0-76">
-</span><span id="__span-0-77"><span class="c1"># Orbit around the center of the volume</span>
-</span><span id="__span-0-78"><span class="n">orbit_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">bounding_box</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-79">
-</span><span id="__span-0-80"><span class="c1"># Place the camera along the x axis, looking at the orbit center</span>
-</span><span id="__span-0-81"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">()</span><span class="o">.</span><span class="n">translated</span><span class="p">(</span><span class="n">orbit_center</span><span class="p">)</span><span class="o">.</span><span class="n">translated</span><span class="p">((</span><span class="mi">300</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-</span><span id="__span-0-82"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">look_at</span><span class="p">(</span><span class="n">orbit_center</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="__span-0-83"><span class="c1"># Perspective projection for 3D</span>
-</span><span id="__span-0-84"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">perspective</span><span class="p">(</span>
-</span><span id="__span-0-85">    <span class="n">fov</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
-</span><span id="__span-0-86">    <span class="n">near</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-0-87">    <span class="n">far</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>  <span class="c1"># Just need something big</span>
-</span><span id="__span-0-88"><span class="p">)</span>
-</span><span id="__span-0-89"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">controller</span> <span class="o">=</span> <span class="n">snx</span><span class="o">.</span><span class="n">Orbit</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">orbit_center</span><span class="p">)</span>
-</span><span id="__span-0-90">
-</span><span id="__span-0-91"><span class="n">snx</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span><span id="__span-0-73"><span class="n">snx</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
+</span><span id="__span-0-74">
+</span><span id="__span-0-75"><span class="c1"># Orbit around the center of the volume</span>
+</span><span id="__span-0-76"><span class="n">orbit_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">bounding_box</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-77">
+</span><span id="__span-0-78"><span class="c1"># Place the camera along the x axis, looking at the orbit center</span>
+</span><span id="__span-0-79"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">()</span><span class="o">.</span><span class="n">translated</span><span class="p">(</span><span class="n">orbit_center</span><span class="p">)</span><span class="o">.</span><span class="n">translated</span><span class="p">((</span><span class="mi">300</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</span><span id="__span-0-80"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">look_at</span><span class="p">(</span><span class="n">orbit_center</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-0-81"><span class="c1"># Perspective projection for 3D</span>
+</span><span id="__span-0-82"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">projections</span><span class="o">.</span><span class="n">perspective</span><span class="p">(</span>
+</span><span id="__span-0-83">    <span class="n">fov</span><span class="o">=</span><span class="mi">70</span><span class="p">,</span>
+</span><span id="__span-0-84">    <span class="n">near</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-85">    <span class="n">far</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>  <span class="c1"># Just need something big</span>
+</span><span id="__span-0-86"><span class="p">)</span>
+</span><span id="__span-0-87"><span class="n">view</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">controller</span> <span class="o">=</span> <span class="n">snx</span><span class="o">.</span><span class="n">Orbit</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">orbit_center</span><span class="p">)</span>
+</span><span id="__span-0-88">
+</span><span id="__span-0-89"><span class="n">snx</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </span></code></pre></div>
 
 
