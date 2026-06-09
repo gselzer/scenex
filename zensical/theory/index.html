@@ -993,6 +993,32 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  none
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1107,7 +1133,7 @@
 <h2 id="scenexmodels"><code>scenex.models</code><a class="headerlink" href="#scenexmodels" title="Permanent link">#</a></h2>
 <p>The module <code>scenex.models</code> contains <a href="https://en.wikipedia.org/wiki/Scene_graph">scenegraph</a> building blocks, written as <a href="https://pydantic.dev/">pydantic</a> dataclasses augmented with <a href="https://psygnal.readthedocs.io/">psygnal</a> signals. This combination results in dataclasses with some useful properties:</p>
 <ul>
-<li><strong>Validation</strong>: node properties are checked on assignment.<ul>
+<li><strong>Validation</strong>: node properties are checked on assignment - for example:<ul>
 <li><code>opacity</code> can be confined to <code>[0, 1]</code>, so bad values raise an error immediately rather than producing subtle visual artifacts.</li>
 <li>sizes and widths can be confined to non-negative values.</li>
 </ul>

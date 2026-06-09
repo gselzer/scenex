@@ -23,7 +23,7 @@
     
     
       
-        <title>Building the docs - scenex</title>
+        <title>Contributing - scenex</title>
       
     
     
@@ -83,7 +83,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#building-the-docs" class="md-skip">
+        <a href="#contributing" class="md-skip">
           Skip to content
         </a>
       
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Building the docs
+              Contributing
             
           </span>
         </div>
@@ -890,6 +890,32 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  none
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -931,33 +957,72 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#generating-example-pages" class="md-nav__link">
+  <a href="#contributing-code" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Generating example pages
+        Contributing Code
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Contributing Code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Running tests
       </span>
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#serving-locally" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#code-style" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Serving locally
+        Code style
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Serving locally">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Contributing Documentation
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Contributing Documentation">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#serving-locally-via-vscode" class="md-nav__link">
+  <a href="#regenerating-example-pages" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Serving locally via VSCode
+        Regenerating example pages
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serving-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Serving locally
       </span>
     </span>
   </a>
@@ -987,39 +1052,85 @@
   
 
 
-<p>This file is designed to inform contributions to the scenex docs.</p>
-<h1 id="building-the-docs">Building the docs<a class="headerlink" href="#building-the-docs" title="Permanent link">#</a></h1>
-<h2 id="generating-example-pages">Generating example pages<a class="headerlink" href="#generating-example-pages" title="Permanent link">#</a></h2>
+<h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">#</a></h1>
+<p>Contributions are welcome in many forms — bug fixes, new features, documentation improvements, and issue reports are all appreciated.</p>
+<h2 id="contributing-code">Contributing Code<a class="headerlink" href="#contributing-code" title="Permanent link">#</a></h2>
+<p>Development happens on <a href="https://github.com/pyapp-kit/scenex">GitHub</a>. To contribute a code improvement, <a href="https://docs.github.com/en/get-started/quickstart/fork-a-repo">fork</a> the repository on GitHub, clone your fork, and install with <a href="https://docs.astral.sh/uv/">uv</a> (recommended):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;your-username&gt;/scenex
+</span><span id="__span-0-2"><span class="nb">cd</span><span class="w"> </span>scenex
+</span><span id="__span-0-3">uv<span class="w"> </span>sync
+</span><span id="__span-0-4">pre-commit<span class="w"> </span>install
+</span></code></pre></div>
+<h3 id="running-tests">Running tests<a class="headerlink" href="#running-tests" title="Permanent link">#</a></h3>
+<p>Once you've made a change, please write a test showing that your change works! This repository uses <a href="https://docs.pytest.org/en/stable/">pytest</a> to run the <code>scenex</code> unit tests </p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1">uv<span class="w"> </span>run<span class="w"> </span>--exact<span class="w"> </span>--no-dev<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span><span class="w"> </span>pytest
+</span></code></pre></div>
+<p>There are a few optional test groups depending on which backends you want to exercise:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Extra parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qt</td>
+<td><code>--extra pyqt6 --group testqt</code></td>
+</tr>
+<tr>
+<td>Jupyter</td>
+<td><code>--extra jupyter --group testjupyter</code></td>
+</tr>
+<tr>
+<td>WxPython</td>
+<td><code>--extra wx</code></td>
+</tr>
+<tr>
+<td>VisPy</td>
+<td><code>--extra vispy</code></td>
+</tr>
+<tr>
+<td>pygfx</td>
+<td><code>--extra pygfx</code></td>
+</tr>
+</tbody>
+</table>
+<p>For example, the following will run scenex tests pertaining to the <code>vispy</code> backend, the <code>qt</code> app, and the scenex model code:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1">uv<span class="w"> </span>run<span class="w"> </span>--exact<span class="w"> </span>--no-dev<span class="w"> </span>--group<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--extra<span class="w"> </span>vispy<span class="w"> </span>--extra<span class="w"> </span>pyqt6<span class="w"> </span>--group<span class="w"> </span>testqt<span class="w"> </span>pytest
+</span></code></pre></div>
+<h3 id="code-style">Code style<a class="headerlink" href="#code-style" title="Permanent link">#</a></h3>
+<p>Pre-commit hooks handle formatting and linting automatically on each commit. To run them manually:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1">uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</span></code></pre></div>
+<h2 id="contributing-documentation">Contributing Documentation<a class="headerlink" href="#contributing-documentation" title="Permanent link">#</a></h2>
+<p>Documentation is built with <a href="https://zensical.org/">zensical</a> (an mkdocs-based tool), sourced from the <code>docs/</code> folder.</p>
+<h3 id="regenerating-example-pages">Regenerating example pages<a class="headerlink" href="#regenerating-example-pages" title="Permanent link">#</a></h3>
 <p>Before building or serving the docs, regenerate the example pages and screenshots:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1">uv<span class="w"> </span>run<span class="w"> </span>--exact<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>python<span class="w"> </span>docs/gen_examples.py
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1">uv<span class="w"> </span>run<span class="w"> </span>--exact<span class="w"> </span>--extra<span class="w"> </span>pygfx<span class="w"> </span>--extra<span class="w"> </span>wx<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>python<span class="w"> </span>docs/gen_examples.py
 </span></code></pre></div>
-<p>This script:</p>
-<ul>
-<li>Runs each Python file in <code>examples/</code>, capturing an offscreen screenshot via <code>canvas.render()</code></li>
-<li>Parses each file's module-level docstring</li>
-<li>Writes a <code>docs/examples/{name}.md</code> page with the description, screenshot, and source code</li>
-<li>Regenerates <code>docs/examples/index.md</code> as a gallery of all examples</li>
-<li>Updates the <code>{Examples = [...]}</code> entry in <code>zensical.toml</code> to match the current example set</li>
-</ul>
-<p>Re-run this script whenever examples are added, removed, or their docstrings change. <strong>Note the CI will run <code>gen_examples.py</code> as a part of the documentation build process</strong></p>
-<h2 id="serving-locally">Serving locally<a class="headerlink" href="#serving-locally" title="Permanent link">#</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1">uv<span class="w"> </span>run<span class="w"> </span>--exact<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zensical<span class="w"> </span>serve
+<p>Re-run this script whenever examples are added, removed, or their docstrings change.</p>
+<h3 id="serving-locally">Serving locally<a class="headerlink" href="#serving-locally" title="Permanent link">#</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1">uv<span class="w"> </span>run<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zensical<span class="w"> </span>serve
 </span></code></pre></div>
-<h3 id="serving-locally-via-vscode">Serving locally via VSCode<a class="headerlink" href="#serving-locally-via-vscode" title="Permanent link">#</a></h3>
-<p>The following launch configuration can be added to a <code>.vscode/launch.json</code> file:
-<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><span class="w">    </span><span class="p">{</span>
-</span><span id="__span-2-2"><span class="w">        </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;zensical serve&quot;</span><span class="p">,</span>
-</span><span id="__span-2-3"><span class="w">        </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;debugpy&quot;</span><span class="p">,</span>
-</span><span id="__span-2-4"><span class="w">        </span><span class="nt">&quot;request&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;launch&quot;</span><span class="p">,</span>
-</span><span id="__span-2-5"><span class="w">        </span><span class="nt">&quot;module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;zensical&quot;</span><span class="p">,</span>
-</span><span id="__span-2-6"><span class="w">        </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;serve&quot;</span><span class="p">],</span>
-</span><span id="__span-2-7"><span class="w">        </span><span class="nt">&quot;python&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${workspaceFolder}/.venv/Scripts/python.exe&quot;</span><span class="p">,</span>
-</span><span id="__span-2-8"><span class="w">        </span><span class="nt">&quot;cwd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${workspaceFolder}&quot;</span><span class="p">,</span>
-</span><span id="__span-2-9"><span class="w">        </span><span class="nt">&quot;console&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integratedTerminal&quot;</span><span class="p">,</span>
-</span><span id="__span-2-10"><span class="w">        </span><span class="nt">&quot;justMyCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-</span><span id="__span-2-11"><span class="w">        </span><span class="nt">&quot;subProcess&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-</span><span id="__span-2-12"><span class="w">    </span><span class="p">}</span>
-</span></code></pre></div></p>
+<p>The docs will be available at <code>http://127.0.0.1:8000</code> and will live-reload as you edit.</p>
+<details class="tip">
+<summary>Serving from VS Code</summary>
+<p>Add this launch configuration to <code>.vscode/launch.json</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><span class="p">{</span>
+</span><span id="__span-6-2"><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;zensical serve&quot;</span><span class="p">,</span>
+</span><span id="__span-6-3"><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;debugpy&quot;</span><span class="p">,</span>
+</span><span id="__span-6-4"><span class="w">    </span><span class="nt">&quot;request&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;launch&quot;</span><span class="p">,</span>
+</span><span id="__span-6-5"><span class="w">    </span><span class="nt">&quot;module&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;zensical&quot;</span><span class="p">,</span>
+</span><span id="__span-6-6"><span class="w">    </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;serve&quot;</span><span class="p">],</span>
+</span><span id="__span-6-7"><span class="w">    </span><span class="nt">&quot;python&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${workspaceFolder}/.venv/Scripts/python.exe&quot;</span><span class="p">,</span>
+</span><span id="__span-6-8"><span class="w">    </span><span class="nt">&quot;cwd&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${workspaceFolder}&quot;</span><span class="p">,</span>
+</span><span id="__span-6-9"><span class="w">    </span><span class="nt">&quot;console&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integratedTerminal&quot;</span><span class="p">,</span>
+</span><span id="__span-6-10"><span class="w">    </span><span class="nt">&quot;justMyCode&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-6-11"><span class="w">    </span><span class="nt">&quot;subProcess&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-6-12"><span class="p">}</span>
+</span></code></pre></div>
+</details>
 
 
 
@@ -1028,6 +1139,9 @@
 
 
 
+
+  
+  
 
 
 
