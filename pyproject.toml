@@ -74,6 +74,8 @@ pygfx = [
     "rendercanvas>=2.5.1"
 ]
 vispy = ["vispy>=0.15.0", "pyopengl>=3.1"]
+# PySide6 bundles Qt3D; PyQt6 requires the separate PyQt6-3D package
+qt3d-pyqt = ["PyQt6-3D"]
 # This extra is a mess!
 # Our source code for the pygfx adaptors relies on pygfx>=0.13.0 (see that extra for why).
 # However no versions of imgui-bundle that I'm aware of work for pygfx v0.13.0, because each version of pygfx

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from ._registry import AdaptorRegistry
 
-KnownBackend: TypeAlias = Literal["vispy", "pygfx"]
+KnownBackend: TypeAlias = Literal["vispy", "pygfx", "qt3d"]
 KNOWN_BACKENDS: set[str] = set(get_args(KnownBackend))
 _USE: KnownBackend | None = None
 CANVAS_ENV_VAR = "SCENEX_CANVAS_BACKEND"
@@ -38,11 +38,21 @@ def get_adaptor_registry(backend: KnownBackend | str | None = None) -> AdaptorRe
             from . import _pygfx
 
             return _pygfx.adaptors
+        case "qt3d":
+            from . import _qt3d
+
+            return _qt3d.adaptors
+        case _:
+            raise RuntimeError(f"Unknown backend {backend!r}")
 
 
 def get_all_adaptors(obj: Any) -> Iterator[Adaptor]:
     """Get all loaded adaptors for the given object."""
-    for mod_name in ["scenex.adaptors._vispy", "scenex.adaptors._pygfx"]:
+    for mod_name in [
+        "scenex.adaptors._vispy",
+        "scenex.adaptors._pygfx",
+        "scenex.adaptors._qt3d",
+    ]:
         if mod := sys.modules.get(mod_name):
             reg = cast("AdaptorRegistry", mod.adaptors)
             with suppress(KeyError):
@@ -67,11 +77,28 @@ def determine_backend(request: KnownBackend | str | None = None) -> KnownBackend
         return "pygfx"
     if importlib.util.find_spec("vispy") is not None:
         return "vispy"
+    if _has_qt3d():
+        return "qt3d"
 
     raise RuntimeError(
         "Could not find a suitable graphics backend. "
         f"Please install one of: {KNOWN_BACKENDS}."
     )
+
+
+def _has_qt3d() -> bool:
+    """Return True if Qt3D Python bindings are importable."""
+    # qtpy.Qt3DCore is a thin wrapper over PySide6/PyQt6 Qt3D; it raises
+    # QtModuleNotInstalledError when the underlying C++ module is absent.
+    return importlib.util.find_spec("qtpy") is not None and _try_import_qt3d()
+
+
+def _try_import_qt3d() -> bool:
+    try:
+        __import__("qtpy.Qt3DCore")
+        return True
+    except Exception:
+        return False
 
 
 def use(backend: KnownBackend | None = None) -> None:
@@ -86,10 +113,11 @@ def use(backend: KnownBackend | None = None) -> None:
 
     Parameters
     ----------
-    backend : Literal["pygfx", "vispy"] | None
+    backend : Literal["pygfx", "vispy", "qt3d"] | None
         The graphics backend to use:
         - "pygfx": Modern WebGPU-based renderer with advanced features
         - "vispy": OpenGL-based renderer with broad compatibility
+        - "qt3d": Pure-Qt renderer using Qt3DCore/Qt3DRender (PySide6 or PyQt6+PyQt6-3D)
         - None: Reset to auto-detection
 
     Raises
