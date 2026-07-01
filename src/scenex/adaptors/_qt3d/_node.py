@@ -30,14 +30,24 @@ BLEND_MODES = {
     model.BlendMode.ADDITIVE: "add",
 }
 
+# Z step per order unit for depth-based render ordering.
+# With far=10_000 and a 24-bit depth buffer the minimum distinguishable world-Z
+# difference is ≈ 6e-4; 1e-2 gives ~16 depth-buffer steps of separation.
+_ORDER_Z_STEP: float = 1e-2
 
-def _to_qmatrix(transform: Transform) -> QMatrix4x4:
+
+def _to_qmatrix(transform: Transform, z_offset: float = 0.0) -> QMatrix4x4:
     """Convert a scenex Transform to a QMatrix4x4.
 
     scenex uses row-vector convention (v @ M); Qt3D uses column-vector (M @ v),
     so we transpose before packing into QMatrix4x4 (which takes row-major values).
+    z_offset is added to the Z translation component (column 3, row 2) before
+    conversion so depth-based render ordering works without Qt API calls.
     """
     mat = np.asarray(transform.root, dtype=np.float64).T
+    if z_offset:
+        mat = mat.copy()
+        mat[2, 3] += z_offset  # Z translation in column-vector convention
     return QMatrix4x4(*mat.flatten().tolist())
 
 
@@ -75,13 +85,18 @@ class Node(NodeAdaptor[TNode, TObj], Generic[TNode, TObj]):
         pass
 
     def _snx_set_order(self, arg: int) -> None:
-        pass
+        self._order = int(arg)
+        # Re-apply the stored transform with the new Z offset.
+        if hasattr(self, "_last_transform"):
+            self._snx_set_transform(self._last_transform)
 
     def _snx_set_interactive(self, arg: bool) -> None:
         pass
 
     def _snx_set_transform(self, arg: Transform) -> None:
-        self._qt_transform.setMatrix(_to_qmatrix(arg))
+        self._last_transform = arg
+        order_z = getattr(self, "_order", 0) * _ORDER_Z_STEP
+        self._qt_transform.setMatrix(_to_qmatrix(arg, order_z))
 
     def _snx_set_blending(self, arg: model.BlendMode) -> None:
         pass  # Override in subclasses that use materials with blend state

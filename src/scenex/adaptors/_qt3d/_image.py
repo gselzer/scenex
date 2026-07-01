@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -62,7 +62,11 @@ class _RGBATextureImage(QPaintedTextureImage):
 def _make_quad_geometry(w: float, h: float) -> tuple[QGeometry, int]:
     """Build a 2-triangle quad in the XY plane from (0,0) to (w,h).
 
-    Returns the QGeometry and vertex count.
+    All child objects (buffers, attributes) are parented to the returned
+    QGeometry so the C++ ownership chain keeps them alive once the caller
+    parents the geometry to its renderer.
+
+    Returns (geom, index_count).
     """
     # 4 vertices: (x, y, z) + (u, v)
     vertices = np.array(
@@ -78,13 +82,15 @@ def _make_quad_geometry(w: float, h: float) -> tuple[QGeometry, int]:
 
     stride = 5 * 4  # 5 floats × 4 bytes
 
-    vertex_buffer = QBuffer()
+    geom = QGeometry()
+
+    vertex_buffer = QBuffer(geom)
     vertex_buffer.setData(QByteArray(vertices.tobytes()))
 
-    index_buffer = QBuffer()
+    index_buffer = QBuffer(geom)
     index_buffer.setData(QByteArray(indices.tobytes()))
 
-    pos_attr = QAttribute()
+    pos_attr = QAttribute(geom)
     pos_attr.setAttributeType(QAttribute.AttributeType.VertexAttribute)
     pos_attr.setVertexBaseType(QAttribute.VertexBaseType.Float)
     pos_attr.setVertexSize(3)
@@ -93,7 +99,7 @@ def _make_quad_geometry(w: float, h: float) -> tuple[QGeometry, int]:
     pos_attr.setBuffer(vertex_buffer)
     pos_attr.setName(QAttribute.defaultPositionAttributeName())
 
-    uv_attr = QAttribute()
+    uv_attr = QAttribute(geom)
     uv_attr.setAttributeType(QAttribute.AttributeType.VertexAttribute)
     uv_attr.setVertexBaseType(QAttribute.VertexBaseType.Float)
     uv_attr.setVertexSize(2)
@@ -102,13 +108,12 @@ def _make_quad_geometry(w: float, h: float) -> tuple[QGeometry, int]:
     uv_attr.setBuffer(vertex_buffer)
     uv_attr.setName(QAttribute.defaultTextureCoordinateAttributeName())
 
-    idx_attr = QAttribute()
+    idx_attr = QAttribute(geom)
     idx_attr.setAttributeType(QAttribute.AttributeType.IndexAttribute)
     idx_attr.setVertexBaseType(QAttribute.VertexBaseType.UnsignedInt)
     idx_attr.setBuffer(index_buffer)
     idx_attr.setCount(len(indices))
 
-    geom = QGeometry()
     geom.addAttribute(pos_attr)
     geom.addAttribute(uv_attr)
     geom.addAttribute(idx_attr)
@@ -156,7 +161,7 @@ class Image(Node, ImageAdaptor):
     array is uploaded to a QPaintedTextureImage.
     """
 
-    def __init__(self, image: model.Image, **backend_kwargs: Any) -> None:
+    def __init__(self, image: model.Image) -> None:
         self._model = image
         self._init_entity()
 
@@ -168,13 +173,15 @@ class Image(Node, ImageAdaptor):
         self._texture = QTexture2D(self._qt_entity)
         self._texture.addTextureImage(self._tex_image)
 
-        # Geometry
+        # Geometry — parent geom to renderer so the C++ ownership chain keeps
+        # all buffers/attributes alive after this __init__ returns.
         geom, n_indices = _make_quad_geometry(float(w), float(h))
 
         renderer = QGeometryRenderer(self._qt_entity)
         renderer.setGeometry(geom)
+        geom.setParent(renderer)
         renderer.setPrimitiveType(QGeometryRenderer.PrimitiveType.Triangles)
-        renderer.setVertexCount(n_indices)  # number of indices in the index buffer
+        renderer.setVertexCount(n_indices)
         renderer.setIndexOffset(0)
         renderer.setInstanceCount(1)
 
@@ -185,19 +192,19 @@ class Image(Node, ImageAdaptor):
         self._qt_entity.addComponent(renderer)
         self._qt_entity.addComponent(self._material)
 
-    def _snx_set_data(self, data: ArrayLike) -> None:
+    def _snx_set_data(self, _data: ArrayLike) -> None:
         rgba = _apply_colormap(self._model)
         self._tex_image.update_rgba(rgba)
 
-    def _snx_set_cmap(self, arg: Colormap) -> None:
+    def _snx_set_cmap(self, _arg: Colormap) -> None:
         rgba = _apply_colormap(self._model)
         self._tex_image.update_rgba(rgba)
 
-    def _snx_set_clims(self, arg: tuple[float, float] | None) -> None:
+    def _snx_set_clims(self, _arg: tuple[float, float] | None) -> None:
         rgba = _apply_colormap(self._model)
         self._tex_image.update_rgba(rgba)
 
-    def _snx_set_gamma(self, arg: float) -> None:
+    def _snx_set_gamma(self, _arg: float) -> None:
         rgba = _apply_colormap(self._model)
         self._tex_image.update_rgba(rgba)
 
